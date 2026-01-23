@@ -66,3 +66,24 @@ CREATE TABLE IF NOT EXISTS admin_login_logs (
     CONSTRAINT fk_admin_logs_user FOREIGN KEY (admin_user_id) REFERENCES users(id) ON DELETE CASCADE,
     INDEX idx_admin_logs_user (admin_user_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+INSERT INTO users (id, role, email, password_hash, created_at, updated_at)
+SELECT
+    '11111111-1111-1111-1111-111111111111',
+    'SUPERADMIN',
+    'superadmin@example.com',
+    '$2y$10$iCmcqdIhoz813aEkKHAFhuarkEpK5r1RB60nTRUG7OEeci4jVHkFu',
+    NOW(),
+    NOW()
+WHERE NOT EXISTS (SELECT 1 FROM users WHERE email = 'superadmin@example.com');
+
+INSERT INTO profiles (user_id, full_name, student_faculty_id, department, year, course_grade_strand, updated_at)
+SELECT
+    '11111111-1111-1111-1111-111111111111',
+    'System Super Admin',
+    'ADMIN-0001',
+    'Administration',
+    'N/A',
+    'N/A',
+    NOW()
+WHERE NOT EXISTS (SELECT 1 FROM profiles WHERE user_id = '11111111-1111-1111-1111-111111111111');

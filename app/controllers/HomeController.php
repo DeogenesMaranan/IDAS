@@ -9,6 +9,15 @@ class HomeController extends BaseController
 {
     public function index(): void
     {
-        $this->view('home', ['title' => 'ID System']);
+        $flash = $_SESSION['flash'] ?? [];
+        unset($_SESSION['flash']);
+
+        $this->view('home', [
+            'title' => 'BEC ID Appointment Portal',
+            'sessionUser' => $_SESSION['user'] ?? null,
+            'error' => $flash['error'] ?? null,
+            'success' => $flash['success'] ?? null,
+            'old' => ['email' => '', 'role' => 'STUDENT'],
+        ]);
     }
 }

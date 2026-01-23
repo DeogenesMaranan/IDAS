@@ -17,4 +17,11 @@ class Response
         extract($params, EXTR_SKIP);
         require __DIR__ . '/../views/' . $view . '.php';
     }
+
+    public static function redirect(string $location, int $statusCode = 302): void
+    {
+        http_response_code($statusCode);
+        header('Location: ' . $location);
+        exit;
+    }
 }
