@@ -19,6 +19,11 @@ $router->post('/login', function () {
     $controller->login();
 });
 
+$router->post('/register', function () {
+    $controller = new AuthController();
+    $controller->register();
+});
+
 $router->post('/logout', function () {
     $controller = new AuthController();
     $controller->logout();

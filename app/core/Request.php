@@ -19,6 +19,12 @@ class Request
             $path = substr($path, strlen($scriptDir)) ?: '/';
         }
 
+        // Also strip the parent directory (e.g., project folder) if the entry point lives in a subfolder like /IDSystem/public
+        $projectBase = rtrim(str_replace('\\', '/', dirname($scriptDir)), '/');
+        if ($projectBase !== '' && strpos($path, $projectBase) === 0) {
+            $path = substr($path, strlen($projectBase)) ?: '/';
+        }
+
         $normalized = '/' . trim($path, '/');
 
         if ($normalized === '//' || $normalized === '') {
