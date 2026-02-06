@@ -40,4 +40,31 @@ document.addEventListener('DOMContentLoaded', function () {
     // initial page
     const initial = window.__INITIAL_SPA_PAGE || 'dashboard';
     showPage(initial);
+
+    // Fetch logged-in student/profile info and populate booking form
+    function populateStudent() {
+        fetch('/IDSystem/api/student', { credentials: 'same-origin' })
+            .then(r => {
+                if (!r.ok) throw new Error('Not authenticated');
+                return r.json();
+            })
+            .then(data => {
+                const set = (id, value) => {
+                    const el = document.getElementById(id);
+                    if (el && (value !== undefined && value !== null)) el.value = value;
+                };
+
+                set('full_name', data.full_name || '');
+                set('student_id', data.student_id || '');
+                set('email', data.email || '');
+                set('department', data.department || '');
+                set('course_grade_strand', data.course_grade_strand || '');
+                set('year', data.year || '');
+            })
+            .catch(() => {
+                // silently ignore if not authenticated or API missing
+            });
+    }
+
+    populateStudent();
 });

@@ -34,4 +34,9 @@ $router->post('/appointments', function () {
     $controller->storeAppointment();
 });
 
+$router->get('/api/student', function () {
+    $controller = new HomeController();
+    $controller->student();
+});
+
 return $router;
