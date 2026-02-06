@@ -5,6 +5,8 @@ declare(strict_types=1);
 require_once __DIR__ . '/BaseController.php';
 require_once __DIR__ . '/../core/Request.php';
 require_once __DIR__ . '/../models/Profile.php';
+require_once __DIR__ . '/../models/Appointment.php';
+require_once __DIR__ . '/../core/Response.php';
 
 class HomeController extends BaseController
 {
@@ -23,11 +25,35 @@ class HomeController extends BaseController
                 $sessionUser = $_SESSION['user'];
             }
 
-            $this->view('dashboard', [
+            $appointmentModel = new Appointment();
+            $appointments = $appointmentModel->findByUserId($sessionUser['id']);
+
+            $roleKey = strtoupper($sessionUser['role'] ?? '');
+
+            // Determine active default per role and render SPA shell
+            switch ($roleKey) {
+                case 'FACULTY':
+                    $activeDefault = 'book';
+                    break;
+                case 'ADMIN':
+                    $activeDefault = 'dashboard';
+                    break;
+                case 'SUPERADMIN':
+                    $activeDefault = 'dashboard';
+                    break;
+                case 'STUDENT':
+                default:
+                    $activeDefault = 'book';
+                    break;
+            }
+
+            $this->view('spa', [
                 'title' => 'Dashboard',
                 'sessionUser' => $sessionUser,
                 'fullName' => $fullName !== '' ? $fullName : $sessionUser['email'],
                 'role' => $sessionUser['role'] ?? '',
+                'appointments' => $appointments,
+                'active' => $activeDefault,
             ]);
             return;
         }
@@ -47,5 +73,40 @@ class HomeController extends BaseController
             'old' => ['email' => '', 'role' => 'STUDENT'],
             'viewMode' => $viewMode,
         ]);
+    }
+
+    public function storeAppointment(): void
+    {
+        $sessionUser = $_SESSION['user'] ?? null;
+
+        if (empty($sessionUser)) {
+            $_SESSION['flash'] = ['error' => 'You must be signed in to create an appointment.'];
+            Response::redirect('/IDSystem/');
+            return;
+        }
+
+        $input = Request::input();
+        $reason = trim((string) ($input['reason'] ?? ''));
+        $scheduledAt = trim((string) ($input['scheduled_at'] ?? ''));
+
+        if ($reason === '') {
+            $_SESSION['flash'] = ['error' => 'Reason is required.'];
+            Response::redirect('/IDSystem/');
+            return;
+        }
+
+        $appointment = new Appointment();
+        $appointment->user_id = $sessionUser['id'];
+        $appointment->reason = $reason;
+        $appointment->scheduled_at = $scheduledAt;
+        $appointment->status = 'PENDING';
+
+        if ($appointment->create()) {
+            $_SESSION['flash'] = ['success' => 'Appointment created successfully.'];
+        } else {
+            $_SESSION['flash'] = ['error' => 'Failed to create appointment.'];
+        }
+
+        Response::redirect('/IDSystem/');
     }
 }

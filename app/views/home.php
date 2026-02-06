@@ -14,152 +14,227 @@ $oldFullName = htmlspecialchars($old['full_name'] ?? '', ENT_QUOTES, 'UTF-8');
 $oldRole = strtoupper((string) ($old['role'] ?? 'STUDENT'));
 $oldStudentFacultyId = htmlspecialchars($old['student_faculty_id'] ?? '', ENT_QUOTES, 'UTF-8');
 $oldDepartment = htmlspecialchars($old['department'] ?? '', ENT_QUOTES, 'UTF-8');
-$oldYear = htmlspecialchars($old['year'] ?? '', ENT_QUOTES, 'UTF-8');
-$yearOptions = ['None', 'Irregular', '1st Year', '2nd Year', '3rd Year', '4th Year'];
 $oldYearValue = strtolower(trim((string) ($old['year'] ?? '')));
 $oldCourseGradeStrand = htmlspecialchars($old['course_grade_strand'] ?? '', ENT_QUOTES, 'UTF-8');
-$required = '<span class="req">*</span>';
+$yearOptions = ['None', 'Irregular', '1st Year', '2nd Year', '3rd Year', '4th Year'];
+$required = '<span class="text-red-600 font-bold">*</span>';
 ?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <?php require __DIR__ . '/head.php'; ?>
     <title><?php echo htmlspecialchars($title, ENT_QUOTES, 'UTF-8'); ?></title>
-        <link rel="stylesheet" href="assets/css/home.css" />
 </head>
 
-<body>
-<div class="toast-stack" aria-live="polite" aria-atomic="true">
-    <?php if (!empty($error)): ?>
-        <div class="toast toast-error" role="alert"><?php echo htmlspecialchars($error, ENT_QUOTES, 'UTF-8'); ?></div>
-    <?php endif; ?>
-    <?php if (!empty($success)): ?>
-        <div class="toast toast-success" role="status"><?php echo htmlspecialchars($success, ENT_QUOTES, 'UTF-8'); ?></div>
-    <?php endif; ?>
-</div>
-<div class="container">
+<body class="antialiased bg-gray-50 overflow-hidden text-xl">
 
-    <div class="left-panel">
-        <div class="overlay"></div>
+<?php require __DIR__ . '/components/toast.php'; ?>
 
-        <div class="branding">
-            <img src="assets/images/BEC-logo.png" class="logo" alt="BEC Logo" />
-            <h1>Batangas Eastern<br>Colleges</h1>
+<div class="h-screen lg:grid lg:grid-cols-2">
+
+    <!-- LEFT PANEL -->
+    <div class="relative bg-gradient-to-b from-red-900 to-red-800 text-white p-12 flex items-center"
+         style="background-image:url('/IDSystem/public/assets/images/bg-image.jpg'); background-size:cover; background-position:center;">
+        <div class="absolute inset-0 bg-red-900/60 backdrop-blur-sm"></div>
+
+        <div class="relative z-10 max-w-lg">
+            <div class="flex items-center gap-5">
+                <img src="/IDSystem/public/assets/images/BEC-logo.png" class="w-20 h-20 rounded-full bg-white p-1">
+                <div>
+                    <h1 class="text-4xl font-bold leading-tight">
+                        Batangas Eastern<br>Colleges
+                    </h1>
+                    <p class="text-lg opacity-90">
+                        ID Appointment Scheduling Portal
+                    </p>
+                </div>
+            </div>
+
+            <p class="mt-6 text-lg">
+                Book appointments online for school ID creation and renewal.
+                Fast, convenient, and secure.
+            </p>
+
+            <ul class="mt-4 space-y-2 text-lg">
+                <li>Easy online booking</li>
+                <li>Real-time appointment tracking</li>
+                <li>Secure and reliable</li>
+            </ul>
         </div>
-
-        <p class="subtitle">ID Appointment Scheduling Portal</p>
-
-        <p class="description">
-            Book appointments online for school ID creation and renewal.<br>
-            Fast, convenient, and secure.
-        </p>
-
-        <ul class="features">
-            <li>Easy online booking</li>
-            <li>Real-time appointment tracking</li>
-            <li>Secure and reliable</li>
-        </ul>
     </div>
 
-    <div class="right-panel">
-        <div class="login-box">
+    <!-- RIGHT PANEL -->
+    <div class="flex flex-col items-center justify-center p-10 gap-5">
 
-            <h2 class="title"><?php echo $isRegister ? 'Create Account' : 'Welcome Back'; ?></h2>
-            <p class="info-text"><?php echo $isRegister ? 'Fill in your details to register' : 'Sign in to your account to continue'; ?></p>
+        <div class="w-full max-w-xl h-[600px] bg-white rounded-2xl shadow-xl flex flex-col text-lg">
 
-            <?php if (!empty($sessionUser)): ?>
-                <div class="session-box">
-                    <p class="session-text">Signed in as <strong><?php echo htmlspecialchars($sessionUser['email'], ENT_QUOTES, 'UTF-8'); ?></strong> (<?php echo htmlspecialchars($sessionUser['role'], ENT_QUOTES, 'UTF-8'); ?>)</p>
-                    <form action="/IDSystem/logout" method="POST">
-                        <button type="submit" class="btn-secondary">Logout</button>
-                    </form>
-                </div>
-            <?php endif; ?>
+            <!-- HEADER -->
+            <div class="p-8 border-b">
+                <h2 class="flex justify-center text-5xl font-bold text-gray-800">
+                    <?php echo $isRegister ? 'Create Account' : 'Welcome Back'; ?>
+                </h2>
+                <p class="flex justify-center text-lg text-gray-500 mt-2">
+                    <?php echo $isRegister ? 'Fill in your details to register' : 'Sign in to your account to continue'; ?>
+                </p>
+            </div>
 
-            <?php if ($isRegister): ?>
-                <div class="form-scroll">
-                    <form id="registerForm" method="POST" action="/IDSystem/register" novalidate>
-                        <label class="input-label" for="fullName">Full name <?php echo $required; ?></label>
-                        <input type="text" name="full_name" id="fullName" class="input-field" placeholder="Juan D. Cruz" value="<?php echo $oldFullName; ?>" required>
+            <!-- FORM -->
+            <div class="flex-1 overflow-y-auto px-8 py-6">
+                <?php if ($isRegister): ?>
+                <form id="registerForm" method="POST" action="/IDSystem/register" class="space-y-5">
 
-                        <label class="input-label" for="roleSelect">Role <?php echo $required; ?></label>
-                        <select name="role" id="roleSelect" class="input-field" required>
+                    <div>
+                        <label class="text-lg font-medium">Full Name <?php echo $required; ?></label>
+                        <input type="text" name="full_name" value="<?php echo $oldFullName; ?>" required
+                               placeholder="e.g. Juan Dela Cruz"
+                               class="w-full border rounded-xl px-4 py-3 text-lg focus:outline-none focus:ring-4 focus:ring-red-200 focus:border-red-600">
+                    </div>
+
+                    <div>
+                        <label class="text-lg font-medium">Role <?php echo $required; ?></label>
+                        <select name="role"
+                                class="w-full border rounded-xl px-4 py-3 text-lg focus:outline-none focus:ring-4 focus:ring-red-200 focus:border-red-600">
                             <option value="STUDENT" <?php echo $oldRole === 'STUDENT' ? 'selected' : ''; ?>>Student</option>
                             <option value="FACULTY" <?php echo $oldRole === 'FACULTY' ? 'selected' : ''; ?>>Faculty</option>
                         </select>
+                    </div>
 
-                        <label class="input-label" for="studentFacultyId">Student / Faculty ID number <?php echo $required; ?></label>
-                        <input type="text" name="student_faculty_id" id="studentFacultyId" class="input-field" placeholder="e.g., 20252026001" value="<?php echo $oldStudentFacultyId; ?>" required pattern="\d{11}" inputmode="numeric" maxlength="11" title="ID number must be exactly 11 digits" oninput="this.value = this.value.replace(/\D/g, '').slice(0, 11);">
+                    <div>
+                        <label class="text-lg font-medium">Student / Faculty ID <?php echo $required; ?></label>
+                        <input type="text" name="student_faculty_id" value="<?php echo $oldStudentFacultyId; ?>" required
+                               maxlength="11" placeholder="e.g. 201800123"
+                               class="w-full border rounded-xl px-4 py-3 text-lg focus:outline-none focus:ring-4 focus:ring-red-200 focus:border-red-600">
+                    </div>
 
-                        <label class="input-label" for="emailInput">Email <?php echo $required; ?></label>
-                        <input type="email" name="email" id="emailInput" class="input-field" placeholder="you@bec.edu.ph" value="<?php echo $oldEmail; ?>" required pattern="^[^@\s]+@bec\.edu\.ph$" title="Email must end with bec.edu.ph">
+                    <div>
+                        <label class="text-lg font-medium">Email <?php echo $required; ?></label>
+                        <input type="email" name="email" value="<?php echo $oldEmail; ?>" required
+                               placeholder="name@bec.edu.ph"
+                               class="w-full border rounded-xl px-4 py-3 text-lg focus:outline-none focus:ring-4 focus:ring-red-200 focus:border-red-600">
+                    </div>
 
-                        <label class="input-label" for="departmentInput">Department <?php echo $required; ?></label>
-                        <input type="text" name="department" id="departmentInput" class="input-field" placeholder="e.g., College of Education" value="<?php echo $oldDepartment; ?>" required>
+                    <div>
+                        <label class="text-lg font-medium">Department <?php echo $required; ?></label>
+                        <input type="text" name="department" value="<?php echo $oldDepartment; ?>" required
+                               placeholder="e.g. Computer Science"
+                               class="w-full border rounded-xl px-4 py-3 text-lg focus:outline-none focus:ring-4 focus:ring-red-200 focus:border-red-600">
+                    </div>
 
-                        <label class="input-label" for="courseInput">Course / Grade / Strand <?php echo $required; ?></label>
-                        <input type="text" name="course_grade_strand" id="courseInput" class="input-field" placeholder="e.g., BSIT, SHS-ABM, 7" value="<?php echo $oldCourseGradeStrand; ?>" required>
+                    <div>
+                        <label class="text-lg font-medium">Course / Grade / Strand <?php echo $required; ?></label>
+                        <input type="text" name="course_grade_strand" value="<?php echo $oldCourseGradeStrand; ?>" required
+                               placeholder="e.g. BSCS / 3rd Year"
+                               class="w-full border rounded-xl px-4 py-3 text-lg focus:outline-none focus:ring-4 focus:ring-red-200 focus:border-red-600">
+                    </div>
 
-                        <label class="input-label" for="yearInput">Year <?php echo $required; ?></label>
-                        <select name="year" id="yearInput" class="input-field" required>
-                            <?php foreach ($yearOptions as $yearOption): ?>
-                                <?php $selected = strtolower($yearOption) === $oldYearValue ? 'selected' : ''; ?>
-                                <option value="<?php echo htmlspecialchars($yearOption, ENT_QUOTES, 'UTF-8'); ?>" <?php echo $selected; ?>><?php echo htmlspecialchars($yearOption, ENT_QUOTES, 'UTF-8'); ?></option>
+                    <div>
+                        <label class="text-lg font-medium">Year <?php echo $required; ?></label>
+                        <select name="year"
+                                class="w-full border rounded-xl px-4 py-3 text-lg focus:outline-none focus:ring-4 focus:ring-red-200 focus:border-red-600">
+                            <?php foreach ($yearOptions as $year): ?>
+                                <option value="<?php echo $year; ?>" <?php echo strtolower($year) === $oldYearValue ? 'selected' : ''; ?>>
+                                    <?php echo $year; ?>
+                                </option>
                             <?php endforeach; ?>
                         </select>
+                    </div>
 
-                        <label class="input-label" for="passwordInput">Password <?php echo $required; ?></label>
-                        <input type="password" name="password" id="passwordInput" class="input-field" placeholder="At least 8 characters" required>
+                    <div>
+                        <label class="text-lg font-medium">Password <?php echo $required; ?></label>
+                        <input type="password" name="password" required
+                               placeholder="Choose a strong password"
+                               class="w-full border rounded-xl px-4 py-3 text-lg focus:outline-none focus:ring-4 focus:ring-red-200 focus:border-red-600">
+                    </div>
 
-                        <label class="input-label" for="passwordConfirmInput">Confirm password <?php echo $required; ?></label>
-                        <input type="password" name="password_confirmation" id="passwordConfirmInput" class="input-field" placeholder="Re-enter password" required>
- 
-                        <button type="submit" class="btn-main" id="registerBtn">Create account</button>
+                    <div>
+                        <label class="text-lg font-medium">Confirm Password <?php echo $required; ?></label>
+                        <input type="password" name="password_confirmation" required
+                               placeholder="Repeat your password"
+                               class="w-full border rounded-xl px-4 py-3 text-lg focus:outline-none focus:ring-4 focus:ring-red-200 focus:border-red-600">
+                    </div>
+                </form>
+                <?php else: ?>
+                <div class="h-full flex items-center justify-center">
+                    <form id="loginForm" method="POST" action="/IDSystem/login" class="space-y-5 w-full">
+                        <div>
+                            <label class="text-lg font-medium">Email or ID Number <?php echo $required; ?></label>
+                            <input type="text" name="email" value="<?php echo $oldEmail; ?>" required
+                                placeholder="Email or ID Number"
+                                class="w-full border rounded-xl px-4 py-3 text-lg focus:outline-none focus:ring-4 focus:ring-red-200 focus:border-red-600">
+                        </div>
+
+                        <div>
+                            <label class="text-lg font-medium">Password <?php echo $required; ?></label>
+                            <input type="password" name="password" required
+                                placeholder="Your password"
+                                class="w-full border rounded-xl px-4 py-3 text-lg focus:outline-none focus:ring-4 focus:ring-red-200 focus:border-red-600">
+                        </div>
                     </form>
                 </div>
+                <?php endif; ?>
+            </div>
 
-                <div class="links links-right" id="linksBox">
-                    <a href="./" class="register" id="loginLink">Already have an account? <b>Login</b></a>
+            <!-- FOOTER -->
+            <div class="p-8 border-t">
+                <button form="<?php echo $isRegister ? 'registerForm' : 'loginForm'; ?>"
+                        class="w-full bg-red-600 text-white py-4 rounded-xl text-xl hover:bg-red-700 transition">
+                    <?php echo $isRegister ? 'Create Account' : 'Login'; ?>
+                </button>
+
+                <div class="mt-5 text-lg text-center">
+                    <?php if ($isRegister): ?>
+                        <div class="flex justify-end">
+                            <a href="./?view=login" class="text-orange-600 font-medium switch-view">
+                                Already have an account? Login
+                            </a>
+                        </div>
+                    <?php else: ?>
+                        <div class="flex justify-between">
+                            <a href="forgot.php" class="text-gray-500">Forgot password?</a>
+                            <a href="./?view=register" class="text-orange-600 font-medium switch-view">
+                                Don’t Have an Account? Register
+                            </a>
+                        </div>
+                    <?php endif; ?>
                 </div>
-            <?php else: ?>
-                <div class="form-scroll">
-                    <form id="loginForm" method="POST" action="/IDSystem/login" novalidate>
-                        <label class="input-label" id="userLabel">Email or ID Number <?php echo $required; ?></label>
-                        <input type="text" name="email" class="input-field" id="userInput" placeholder="yourname@bec.edu.ph or ID Number" value="<?php echo $oldEmail; ?>" required>
-
-                        <label class="input-label" id="passLabel">Password <?php echo $required; ?></label>
-                        <input type="password" name="password" class="input-field" id="passInput" placeholder="Password" required>
-
-                        <button type="submit" class="btn-main" id="loginBtn">Login</button>
-                    </form>
-                </div>
-
-                <div class="links" id="linksBox">
-                    <a href="forgot.php" class="forgot">Forgot password?</a>
-                    <a href="./?view=register" class="register" id="registerLink">Don't have an account? <b>Register</b></a>
-                </div>
-            <?php endif; ?>
-
-            <p class="support">
-                Need help? Contact IT Support at
-                <a href="mailto:itsupport@bec.edu.ph" class="support-email">itsupport@bec.edu.ph</a>
-            </p>
+            </div>
 
         </div>
-    </div>
 
+        <p class="text-base text-gray-500 text-center max-w-xl">
+            Need help? Contact IT Support at
+            <a href="mailto:itsupport@bec.edu.ph" class="text-red-600 font-medium hover:underline">
+                itsupport@bec.edu.ph
+            </a>
+        </p>
+    </div>
 </div>
 
-</body>
-</html>
 <script>
 (() => {
-    const toasts = Array.from(document.querySelectorAll('.toast'));
-    toasts.forEach((toast) => {
-        requestAnimationFrame(() => toast.classList.add('show'));
-        setTimeout(() => toast.classList.remove('show'), 4200);
-        setTimeout(() => toast.remove(), 4700);
+    // Toast animation
+    document.querySelectorAll('.toast').forEach(t => {
+        t.classList.add('opacity-100', 'translate-y-0');
+        setTimeout(() => t.classList.remove('opacity-100', 'translate-y-0'), 4200);
+        setTimeout(() => t.remove(), 4700);
+    });
+
+    // Remove query string after page load
+    if (window.location.search.includes('view=')) {
+        const url = window.location.origin + window.location.pathname;
+        window.history.replaceState({}, document.title, url);
+    }
+
+    // Optional: Smooth switch view without page reload
+    document.querySelectorAll('.switch-view').forEach(link => {
+        link.addEventListener('click', e => {
+            e.preventDefault();
+            const href = link.getAttribute('href');
+            window.location.href = href; // load page, then query will disappear
+        });
     });
 })();
 </script>
+
+</body>
+</html>

@@ -29,4 +29,9 @@ $router->post('/logout', function () {
     $controller->logout();
 });
 
+$router->post('/appointments', function () {
+    $controller = new HomeController();
+    $controller->storeAppointment();
+});
+
 return $router;

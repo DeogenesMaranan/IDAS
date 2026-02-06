@@ -28,7 +28,14 @@ class AuthController extends BaseController
         }
 
         $userModel = new User();
-        $user = $userModel->findByEmail($email);
+
+        // Allow login by email or by student/faculty ID (11 digits)
+        $user = null;
+        if (filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            $user = $userModel->findByEmail($email);
+        } elseif (preg_match('/^\d{11}$/', $email)) {
+            $user = $userModel->findByStudentFacultyId($email);
+        }
 
         if (!$user) {
             $this->renderLogin([
@@ -224,7 +231,7 @@ class AuthController extends BaseController
         }
 
         $_SESSION['flash'] = ['success' => 'Account created successfully. Please log in.'];
-        Response::redirect('/IDSystem/?view=login');
+        Response::redirect('/IDSystem/');
     }
 
     private function renderLogin(array $params = []): void

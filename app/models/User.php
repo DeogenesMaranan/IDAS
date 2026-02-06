@@ -63,6 +63,16 @@ class User
         return $result !== false ? $result : null;
     }
 
+    public function findByStudentFacultyId(string $id): ?array
+    {
+        $stmt = $this->pdo->prepare('SELECT u.* FROM users u JOIN profiles p ON p.user_id = u.id WHERE p.student_faculty_id = :id LIMIT 1');
+        $stmt->execute([':id' => $id]);
+
+        $result = $stmt->fetch();
+
+        return $result !== false ? $result : null;
+    }
+
     public function update(): bool
     {
         if ($this->id === '') {
