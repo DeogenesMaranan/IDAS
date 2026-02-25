@@ -28,7 +28,7 @@ $active = $active ?? '';
             <?php if (in_array($role, ['STUDENT', 'FACULTY'], true)): ?>
 
                 <li>
-                    <a href="/IDSystem" data-page="book"
+                    <a href="#" data-page="book"
                        class="flex items-center gap-5 px-5 py-4 rounded-xl transition
                        <?php echo $active === 'book'
                            ? 'bg-white/20 shadow-lg'
@@ -41,7 +41,7 @@ $active = $active ?? '';
                 </li>
 
                 <li>
-                    <a href="/IDSystem" data-page="schedules"
+                    <a href="#" data-page="schedules"
                        class="flex items-center gap-5 px-5 py-4 rounded-xl transition
                        <?php echo $active === 'schedules'
                            ? 'bg-white/20 shadow-lg'
@@ -54,7 +54,7 @@ $active = $active ?? '';
                 </li>
 
                 <li>
-                    <a href="/IDSystem" data-page="profile"
+                    <a href="#" data-page="profile"
                        class="flex items-center gap-5 px-5 py-4 rounded-xl transition
                        <?php echo $active === 'profile'
                            ? 'bg-white/20 shadow-lg'
@@ -69,7 +69,7 @@ $active = $active ?? '';
             <?php elseif (in_array($role, ['ADMIN', 'SUPERADMIN'], true)): ?>
 
                 <li>
-                    <a href="/IDSystem" data-page="dashboard"
+                    <a href="#" data-page="dashboard"
                        class="flex items-center gap-5 px-5 py-4 rounded-xl transition
                        <?php echo $active === 'dashboard'
                            ? 'bg-white/20 shadow-lg'
@@ -82,7 +82,7 @@ $active = $active ?? '';
                 </li>
 
                 <li>
-                    <a href="/IDSystem" data-page="appointments"
+                    <a href="#" data-page="appointments"
                        class="flex items-center gap-5 px-5 py-4 rounded-xl transition
                        <?php echo $active === 'appointments'
                            ? 'bg-white/20 shadow-lg'
@@ -95,7 +95,7 @@ $active = $active ?? '';
                 </li>
 
                 <li>
-                    <a href="/IDSystem" data-page="settings"
+                    <a href="#" data-page="settings"
                        class="flex items-center gap-5 px-5 py-4 rounded-xl transition
                        <?php echo $active === 'settings'
                            ? 'bg-white/20 shadow-lg'
@@ -109,7 +109,7 @@ $active = $active ?? '';
 
                 <?php if ($role === 'SUPERADMIN'): ?>
                     <li>
-                        <a href="/IDSystem" data-page="manage_users"
+                        <a href="#" data-page="manage_users"
                                class="flex items-center gap-5 px-5 py-4 rounded-xl transition
                                    <?php echo $active === 'manage_users'
                                        ? 'bg-white/20 shadow-lg'

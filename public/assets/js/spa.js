@@ -1,6 +1,12 @@
 document.addEventListener('DOMContentLoaded', function () {
+        console.log('SPA script loaded');
     const links = Array.from(document.querySelectorAll('aside a[data-page]'));
+        console.log('SPA nav links found:', links.length);
     const sections = Array.from(document.querySelectorAll('.spa-section'));
+    // Remove PHP-set active classes on all sidebar links
+    links.forEach(a => {
+        a.classList.remove('bg-white/20', 'shadow-lg', 'hover:bg-white/10');
+    });
 
     function showPage(page) {
         sections.forEach(s => {
@@ -33,12 +39,16 @@ document.addEventListener('DOMContentLoaded', function () {
             const page = this.getAttribute('data-page');
             if (!page) return;
             ev.preventDefault();
+            console.log('SPA nav clicked:', page);
             showPage(page);
+            sessionStorage.setItem('spa_selected_page', page);
+            console.log('sessionStorage updated:', sessionStorage.getItem('spa_selected_page'));
         });
     });
 
-    // initial page
-    const initial = window.__INITIAL_SPA_PAGE || 'dashboard';
+    // Restore selected page from sessionStorage or use default
+    const savedPage = sessionStorage.getItem('spa_selected_page');
+    const initial = savedPage || window.__INITIAL_SPA_PAGE || 'dashboard';
     showPage(initial);
 
     // Fetch logged-in student/profile info and populate booking form
