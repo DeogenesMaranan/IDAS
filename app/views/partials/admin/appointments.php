@@ -56,9 +56,15 @@
                         echo '<td class="px-4 py-2 border-b">' . htmlspecialchars($appt["status"]) . '</td>';
                         echo '<td class="px-4 py-2 border-b">';
                         echo '<button class="bg-blue-500 text-white px-2 py-1 rounded mr-1 view-btn" data-id="' . htmlspecialchars($appt["id"]) . '">View</button>';
-                        echo '<button class="bg-green-500 text-white px-2 py-1 rounded mr-1 approve-btn" data-id="' . htmlspecialchars($appt["id"]) . '">Approve</button>';
-                        echo '<button class="bg-yellow-500 text-white px-2 py-1 rounded mr-1 resched-btn" data-id="' . htmlspecialchars($appt["id"]) . '">Resched</button>';
-                        echo '<button class="bg-red-500 text-white px-2 py-1 rounded cancel-btn" data-id="' . htmlspecialchars($appt["id"]) . '">Cancel</button>';
+                        if ($appt["status"] === "APPROVED") {
+                            echo '<button class="bg-gray-400 text-white px-2 py-1 rounded mr-1 approve-btn" data-id="' . htmlspecialchars($appt["id"]) . '" disabled style="opacity:0.6;cursor:not-allowed;">Approve</button>';
+                            echo '<button class="bg-gray-400 text-white px-2 py-1 rounded mr-1 resched-btn" data-id="' . htmlspecialchars($appt["id"]) . '" disabled style="opacity:0.6;cursor:not-allowed;">Resched</button>';
+                            echo '<button class="bg-gray-400 text-white px-2 py-1 rounded cancel-btn" data-id="' . htmlspecialchars($appt["id"]) . '" disabled style="opacity:0.6;cursor:not-allowed;">Cancel</button>';
+                        } else {
+                            echo '<button class="bg-green-500 text-white px-2 py-1 rounded mr-1 approve-btn" data-id="' . htmlspecialchars($appt["id"]) . '">Approve</button>';
+                            echo '<button class="bg-yellow-500 text-white px-2 py-1 rounded mr-1 resched-btn" data-id="' . htmlspecialchars($appt["id"]) . '">Resched</button>';
+                            echo '<button class="bg-red-500 text-white px-2 py-1 rounded cancel-btn" data-id="' . htmlspecialchars($appt["id"]) . '">Cancel</button>';
+                        }
                         echo '</td>';
                         echo '</tr>';
                     }
@@ -148,12 +154,13 @@ document.querySelectorAll('.view-btn').forEach(btn => {
             if (status === 200) {
                 try {
                     const data = JSON.parse(resp);
-                    alert('Appointment Details:\n' +
-                        'Name: ' + (data.full_name || '') + '\n' +
-                        'Department: ' + (data.department || '') + '\n' +
-                        'Date & Time: ' + (data.scheduled_at || '') + '\n' +
-                        'Status: ' + (data.status || '') + '\n' +
-                        'Reason: ' + (data.reason || ''));
+                    let details = 'Appointment Details:\n';
+                    for (const key in data) {
+                        if (data.hasOwnProperty(key)) {
+                            details += key.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) + ': ' + (data[key] ?? '') + '\n';
+                        }
+                    }
+                    alert(details);
                 } catch (e) {
                     alert(resp);
                 }
