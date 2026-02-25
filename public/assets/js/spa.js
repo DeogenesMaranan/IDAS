@@ -48,7 +48,13 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Restore selected page from sessionStorage or use default
     const savedPage = sessionStorage.getItem('spa_selected_page');
-    const initial = savedPage || window.__INITIAL_SPA_PAGE || 'dashboard';
+    let initial = savedPage || window.__INITIAL_SPA_PAGE || 'dashboard';
+    // Check if the initial page exists among sections
+    const sectionIds = sections.map(s => s.id);
+    if (!sectionIds.includes(initial)) {
+        // Fallback to first available section
+        initial = sectionIds[0] || '';
+    }
     showPage(initial);
 
     // Fetch logged-in student/profile info and populate booking form
