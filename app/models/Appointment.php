@@ -4,6 +4,20 @@ require_once __DIR__ . '/Database.php';
 
 class Appointment
 {
+    /**
+     * Fetch all appointments with profile info for admin listing
+     */
+    public static function getAllWithProfile(): array
+    {
+        $pdo = Database::getConnection();
+        $sql = 'SELECT a.id, p.full_name, p.department, a.scheduled_at, a.status, p.student_faculty_id AS id_type
+                FROM appointments a
+                LEFT JOIN profiles p ON a.user_id = p.user_id
+                ORDER BY a.scheduled_at DESC';
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute();
+        return $stmt->fetchAll();
+    }
     public string $id = '';
     public string $user_id = '';
     public string $reason = '';

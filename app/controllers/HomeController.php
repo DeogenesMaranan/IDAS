@@ -87,13 +87,24 @@ class HomeController extends BaseController
 
         $input = Request::input();
         $reason = trim((string) ($input['reason'] ?? ''));
-        $scheduledAt = trim((string) ($input['scheduled_at'] ?? ''));
+        $appointmentDate = trim((string) ($input['appointment_date'] ?? ''));
+        $timeSlot = trim((string) ($input['time_slot'] ?? ''));
 
         if ($reason === '') {
             $_SESSION['flash'] = ['error' => 'Reason is required.'];
             Response::redirect('/IDSystem/');
             return;
         }
+        if ($appointmentDate === '' || $timeSlot === '') {
+            $_SESSION['flash'] = ['error' => 'Date and time are required.'];
+            Response::redirect('/IDSystem/');
+            return;
+        }
+
+        // Combine date and time slot into a single datetime string
+        $slotParts = explode('-', $timeSlot);
+        $startTime = isset($slotParts[0]) ? $slotParts[0] : '08:00';
+        $scheduledAt = $appointmentDate . ' ' . $startTime;
 
         $appointment = new Appointment();
         $appointment->user_id = $sessionUser['id'];
