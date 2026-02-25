@@ -10,6 +10,43 @@ require_once __DIR__ . '/../core/Response.php';
 
 class HomeController extends BaseController
 {
+    /**
+     * Admin AJAX appointment list handler
+     */
+    public function listAppointmentsAjax(): void
+    {
+        $sessionUser = $_SESSION['user'] ?? null;
+        if (empty($sessionUser) || !in_array($sessionUser['role'], ['ADMIN', 'SUPERADMIN'])) {
+            $this->json(['error' => 'Unauthorized'], 403);
+            return;
+        }
+        $input = Request::input();
+        $search = trim((string)($input['search'] ?? ''));
+        $status = trim((string)($input['status'] ?? ''));
+        $appointments = Appointment::getAllWithProfile();
+        $filtered = [];
+        foreach ($appointments as $appt) {
+            $match = true;
+            if ($search !== '') {
+                $match = stripos($appt['full_name'], $search) !== false || stripos($appt['id'], $search) !== false;
+            }
+            if ($match && $status !== '') {
+                $match = $appt['status'] === $status;
+            }
+            if ($match) $filtered[] = $appt;
+        }
+        // If search is empty, show all (filtered by status if set)
+        if ($search === '') {
+            if ($status === '') {
+                $filtered = $appointments;
+            } else {
+                $filtered = array_filter($appointments, function($appt) use ($status) {
+                    return $appt['status'] === $status;
+                });
+            }
+        }
+        $this->json(array_values($filtered));
+    }
     public function index(): void
     {
         $sessionUser = $_SESSION['user'] ?? null;

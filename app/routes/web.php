@@ -35,6 +35,12 @@ $router->post('/appointments', function () {
     $controller->storeAppointment();
 });
 
+
+$router->post('/admin/appointments/list', function () {
+    $controller = new HomeController();
+    $controller->listAppointmentsAjax();
+});
+
 $router->post('/admin/appointments/reschedule', function () {
     $controller = new HomeController();
     $controller->rescheduleAppointment();

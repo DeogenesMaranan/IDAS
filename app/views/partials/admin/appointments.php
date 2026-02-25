@@ -1,16 +1,15 @@
 <div>
     <h1 class="text-3xl font-bold mb-4">Appointments</h1>
     <p>Manage appointment requests.</p>
-    <form method="GET" class="flex items-center gap-4 mb-4">
-        <input type="text" name="search" placeholder="Search by name or ref number" value="<?php echo htmlspecialchars($_GET['search'] ?? '', ENT_QUOTES, 'UTF-8'); ?>" class="border rounded px-3 py-2 w-64" />
-        <select name="status" class="border rounded px-3 py-2">
+    <form id="search-form" class="flex items-center gap-4 mb-4" autocomplete="off">
+        <input type="text" name="search" id="search-input" placeholder="Search by name or ref number" value="<?php echo htmlspecialchars($_GET['search'] ?? '', ENT_QUOTES, 'UTF-8'); ?>" class="border rounded px-3 py-2 w-64" />
+        <select name="status" id="status-select" class="border rounded px-3 py-2">
             <option value="">All Status</option>
             <option value="PENDING" <?php echo (($_GET['status'] ?? '') === 'PENDING') ? 'selected' : ''; ?>>Pending</option>
             <option value="APPROVED" <?php echo (($_GET['status'] ?? '') === 'APPROVED') ? 'selected' : ''; ?>>Approved</option>
             <option value="RESCHEDULED" <?php echo (($_GET['status'] ?? '') === 'RESCHEDULED') ? 'selected' : ''; ?>>Rescheduled</option>
             <option value="CANCELED" <?php echo (($_GET['status'] ?? '') === 'CANCELED') ? 'selected' : ''; ?>>Canceled</option>
         </select>
-        <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded">Search</button>
     </form>
     <div class="overflow-x-auto mt-2">
         <table class="min-w-full bg-white border border-gray-200">
@@ -26,50 +25,6 @@
                 </tr>
             </thead>
             <tbody>
-                <?php
-                require_once __DIR__ . '/../../../models/Appointment.php';
-                $appointments = Appointment::getAllWithProfile();
-                // Filter by search and status
-                $search = isset($_GET['search']) ? trim($_GET['search']) : '';
-                $status = isset($_GET['status']) ? trim($_GET['status']) : '';
-                $filtered = [];
-                foreach ($appointments as $appt) {
-                    $match = true;
-                    if ($search !== '') {
-                        $match = stripos($appt['full_name'], $search) !== false || stripos($appt['id'], $search) !== false;
-                    }
-                    if ($match && $status !== '') {
-                        $match = $appt['status'] === $status;
-                    }
-                    if ($match) $filtered[] = $appt;
-                }
-                if (empty($filtered)) {
-                    echo '<tr><td colspan="7" class="px-4 py-2 border-b text-center text-gray-500">No appointments found.</td></tr>';
-                } else {
-                    foreach ($filtered as $appt) {
-                        echo '<tr>';
-                        echo '<td class="px-4 py-2 border-b">' . htmlspecialchars($appt["id"]) . '</td>';
-                        echo '<td class="px-4 py-2 border-b">' . htmlspecialchars($appt["full_name"]) . '</td>';
-                        echo '<td class="px-4 py-2 border-b">' . htmlspecialchars($appt["department"]) . '</td>';
-                        echo '<td class="px-4 py-2 border-b">' . htmlspecialchars(date("M d, Y H:i", strtotime($appt["scheduled_at"]))) . '</td>';
-                        echo '<td class="px-4 py-2 border-b">' . htmlspecialchars($appt["id_type"]) . '</td>';
-                        echo '<td class="px-4 py-2 border-b">' . htmlspecialchars($appt["status"]) . '</td>';
-                        echo '<td class="px-4 py-2 border-b">';
-                        echo '<button class="bg-blue-500 text-white px-2 py-1 rounded mr-1 view-btn" data-id="' . htmlspecialchars($appt["id"]) . '">View</button>';
-                        if ($appt["status"] === "APPROVED") {
-                            echo '<button class="bg-gray-400 text-white px-2 py-1 rounded mr-1 approve-btn" data-id="' . htmlspecialchars($appt["id"]) . '" disabled style="opacity:0.6;cursor:not-allowed;">Approve</button>';
-                            echo '<button class="bg-gray-400 text-white px-2 py-1 rounded mr-1 resched-btn" data-id="' . htmlspecialchars($appt["id"]) . '" disabled style="opacity:0.6;cursor:not-allowed;">Resched</button>';
-                            echo '<button class="bg-gray-400 text-white px-2 py-1 rounded cancel-btn" data-id="' . htmlspecialchars($appt["id"]) . '" disabled style="opacity:0.6;cursor:not-allowed;">Cancel</button>';
-                        } else {
-                            echo '<button class="bg-green-500 text-white px-2 py-1 rounded mr-1 approve-btn" data-id="' . htmlspecialchars($appt["id"]) . '">Approve</button>';
-                            echo '<button class="bg-yellow-500 text-white px-2 py-1 rounded mr-1 resched-btn" data-id="' . htmlspecialchars($appt["id"]) . '">Resched</button>';
-                            echo '<button class="bg-red-500 text-white px-2 py-1 rounded cancel-btn" data-id="' . htmlspecialchars($appt["id"]) . '">Cancel</button>';
-                        }
-                        echo '</td>';
-                        echo '</tr>';
-                    }
-                }
-                ?>
             </tbody>
         </table>
     </div>
@@ -100,74 +55,176 @@ function ajaxPost(url, data, cb) {
     xhr.send(new URLSearchParams(data).toString());
 }
 
-// Reschedule
-const reschedModal = document.getElementById('resched-modal');
-const closeReschedModal = document.getElementById('close-resched-modal');
-const reschedForm = document.getElementById('resched-form');
-let reschedIdInput = document.getElementById('resched-appt-id');
+// Helper: AJAX GET
+function ajaxGet(url, cb) {
+    const xhr = new XMLHttpRequest();
+    xhr.open('GET', url);
+    xhr.onload = function() { cb(xhr.responseText, xhr.status); };
+    xhr.send();
+}
 
-document.querySelectorAll('.resched-btn').forEach(btn => {
-    btn.addEventListener('click', function() {
-        reschedIdInput.value = this.dataset.id;
-        reschedModal.classList.remove('hidden');
+// Render appointments table
+function renderAppointmentsTable(appointments) {
+    const tbody = document.querySelector('table tbody');
+    tbody.innerHTML = '';
+    if (!appointments || appointments.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" class="px-4 py-2 border-b text-center text-gray-500">No appointments found.</td></tr>';
+        return;
+    }
+    appointments.forEach(appt => {
+        let row = '<tr>';
+        row += '<td class="px-4 py-2 border-b">' + escapeHtml(appt.id) + '</td>';
+        row += '<td class="px-4 py-2 border-b">' + escapeHtml(appt.full_name) + '</td>';
+        row += '<td class="px-4 py-2 border-b">' + escapeHtml(appt.department) + '</td>';
+        row += '<td class="px-4 py-2 border-b">' + escapeHtml(formatDate(appt.scheduled_at)) + '</td>';
+        row += '<td class="px-4 py-2 border-b">' + escapeHtml(appt.id_type) + '</td>';
+        row += '<td class="px-4 py-2 border-b">' + escapeHtml(appt.status) + '</td>';
+        row += '<td class="px-4 py-2 border-b">';
+        if (appt.status === 'CANCELED') {
+            row += '<button class="bg-gray-400 text-white px-2 py-1 rounded mr-1 view-btn" data-id="' + escapeHtml(appt.id) + '" disabled style="opacity:0.6;cursor:not-allowed;">View</button>';
+        } else {
+            row += '<button class="bg-blue-500 text-white px-2 py-1 rounded mr-1 view-btn" data-id="' + escapeHtml(appt.id) + '">View</button>';
+        }
+        if (appt.status === 'APPROVED') {
+            row += '<button class="bg-gray-400 text-white px-2 py-1 rounded mr-1 approve-btn" data-id="' + escapeHtml(appt.id) + '" disabled style="opacity:0.6;cursor:not-allowed;">Approve</button>';
+            row += '<button class="bg-gray-400 text-white px-2 py-1 rounded mr-1 resched-btn" data-id="' + escapeHtml(appt.id) + '" disabled style="opacity:0.6;cursor:not-allowed;">Resched</button>';
+            row += '<button class="bg-gray-400 text-white px-2 py-1 rounded cancel-btn" data-id="' + escapeHtml(appt.id) + '" disabled style="opacity:0.6;cursor:not-allowed;">Cancel</button>';
+        } else if (appt.status === 'CANCELED') {
+            row += '<button class="bg-gray-400 text-white px-2 py-1 rounded mr-1 approve-btn" data-id="' + escapeHtml(appt.id) + '" disabled style="opacity:0.6;cursor:not-allowed;">Approve</button>';
+            row += '<button class="bg-gray-400 text-white px-2 py-1 rounded mr-1 resched-btn" data-id="' + escapeHtml(appt.id) + '" disabled style="opacity:0.6;cursor:not-allowed;">Resched</button>';
+            row += '<button class="bg-gray-400 text-white px-2 py-1 rounded cancel-btn" data-id="' + escapeHtml(appt.id) + '" disabled style="opacity:0.6;cursor:not-allowed;">Cancel</button>';
+        } else {
+            row += '<button class="bg-green-500 text-white px-2 py-1 rounded mr-1 approve-btn" data-id="' + escapeHtml(appt.id) + '">Approve</button>';
+            row += '<button class="bg-yellow-500 text-white px-2 py-1 rounded mr-1 resched-btn" data-id="' + escapeHtml(appt.id) + '">Resched</button>';
+            row += '<button class="bg-red-500 text-white px-2 py-1 rounded cancel-btn" data-id="' + escapeHtml(appt.id) + '">Cancel</button>';
+        }
+        row += '</td>';
+        row += '</tr>';
+        tbody.innerHTML += row;
     });
-});
-closeReschedModal.addEventListener('click', () => {
-    reschedModal.classList.add('hidden');
-});
-reschedForm.addEventListener('submit', function(e) {
-    e.preventDefault();
-    const id = reschedIdInput.value;
-    const date = document.getElementById('resched-date').value;
-    const time = document.getElementById('resched-time').value;
-    ajaxPost('/IDSystem/admin/appointments/reschedule', {id, date, time}, (resp, status) => {
-        if (status === 200) location.reload();
-        else alert('Failed to reschedule.');
-    });
-});
-// Approve
-document.querySelectorAll('.approve-btn').forEach(btn => {
-    btn.addEventListener('click', function() {
-        if (!confirm('Approve this appointment?')) return;
-        ajaxPost('/IDSystem/admin/appointments/approve', {id: this.dataset.id}, (resp, status) => {
-            if (status === 200) location.reload();
-            else alert('Failed to approve.');
-        });
-    });
-});
+    bindActionButtons();
+}
 
-// Cancel
-document.querySelectorAll('.cancel-btn').forEach(btn => {
-    btn.addEventListener('click', function() {
-        if (!confirm('Cancel this appointment?')) return;
-        ajaxPost('/IDSystem/admin/appointments/cancel', {id: this.dataset.id}, (resp, status) => {
-            if (status === 200) location.reload();
-            else alert('Failed to cancel.');
-        });
+function escapeHtml(text) {
+    if (typeof text !== 'string') return text;
+    return text.replace(/[&<>"']/g, function(m) {
+        return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;'}[m];
     });
-});
+}
 
-// View
-document.querySelectorAll('.view-btn').forEach(btn => {
-    btn.addEventListener('click', function() {
-        ajaxPost('/IDSystem/admin/appointments/view', {id: this.dataset.id}, (resp, status) => {
-            if (status === 200) {
-                try {
-                    const data = JSON.parse(resp);
-                    let details = 'Appointment Details:\n';
-                    for (const key in data) {
-                        if (data.hasOwnProperty(key)) {
-                            details += key.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) + ': ' + (data[key] ?? '') + '\n';
-                        }
-                    }
-                    alert(details);
-                } catch (e) {
-                    alert(resp);
-                }
-            } else {
-                alert('Failed to fetch details.');
+function formatDate(dt) {
+    if (!dt) return '';
+    const d = new Date(dt);
+    if (isNaN(d)) return dt;
+    return d.toLocaleString('en-US', { month: 'short', day: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+}
+
+// Fetch appointments
+function fetchAppointments(search, status) {
+    // If search is empty, send only status (or empty string for all)
+    const searchVal = search.trim();
+    const statusVal = status;
+    let postData = {};
+    if (searchVal === '') {
+        postData = {search: '', status: statusVal};
+    } else {
+        postData = {search: searchVal, status: statusVal};
+    }
+    ajaxPost('/IDSystem/admin/appointments/list', postData, (resp, code) => {
+        if (code === 200) {
+            try {
+                const data = JSON.parse(resp);
+                renderAppointmentsTable(data);
+            } catch (e) {
+                renderAppointmentsTable([]);
             }
+        } else {
+            renderAppointmentsTable([]);
+        }
+    });
+}
+
+// Bind action buttons
+function bindActionButtons() {
+    // Reschedule
+    const reschedModal = document.getElementById('resched-modal');
+    const closeReschedModal = document.getElementById('close-resched-modal');
+    const reschedForm = document.getElementById('resched-form');
+    let reschedIdInput = document.getElementById('resched-appt-id');
+    document.querySelectorAll('.resched-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            reschedIdInput.value = this.dataset.id;
+            reschedModal.classList.remove('hidden');
         });
     });
+    closeReschedModal.addEventListener('click', () => {
+        reschedModal.classList.add('hidden');
+    });
+    reschedForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        const id = reschedIdInput.value;
+        const date = document.getElementById('resched-date').value;
+        const time = document.getElementById('resched-time').value;
+        ajaxPost('/IDSystem/admin/appointments/reschedule', {id, date, time}, (resp, status) => {
+            if (status === 200) fetchAppointments(searchInput.value, statusSelect.value);
+            else alert('Failed to reschedule.');
+        });
+    });
+    // Approve
+    document.querySelectorAll('.approve-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            if (!confirm('Approve this appointment?')) return;
+            ajaxPost('/IDSystem/admin/appointments/approve', {id: this.dataset.id}, (resp, status) => {
+                if (status === 200) fetchAppointments(searchInput.value, statusSelect.value);
+                else alert('Failed to approve.');
+            });
+        });
+    });
+    // Cancel
+    document.querySelectorAll('.cancel-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            if (!confirm('Cancel this appointment?')) return;
+            ajaxPost('/IDSystem/admin/appointments/cancel', {id: this.dataset.id}, (resp, status) => {
+                if (status === 200) fetchAppointments(searchInput.value, statusSelect.value);
+                else alert('Failed to cancel.');
+            });
+        });
+    });
+    // View
+    document.querySelectorAll('.view-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            ajaxPost('/IDSystem/admin/appointments/view', {id: this.dataset.id}, (resp, status) => {
+                if (status === 200) {
+                    try {
+                        const data = JSON.parse(resp);
+                        let details = 'Appointment Details:\n';
+                        for (const key in data) {
+                            if (data.hasOwnProperty(key)) {
+                                details += key.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) + ': ' + (data[key] ?? '') + '\n';
+                            }
+                        }
+                        alert(details);
+                    } catch (e) {
+                        alert(resp);
+                    }
+                } else {
+                    alert('Failed to fetch details.');
+                }
+            });
+        });
+    });
+}
+
+// Instant search/filter
+const searchInput = document.getElementById('search-input');
+const statusSelect = document.getElementById('status-select');
+searchInput.addEventListener('input', function() {
+    fetchAppointments(searchInput.value, statusSelect.value);
 });
+statusSelect.addEventListener('change', function() {
+    fetchAppointments(searchInput.value, statusSelect.value);
+});
+
+// Initial load
+fetchAppointments(searchInput.value, statusSelect.value);
 </script>
