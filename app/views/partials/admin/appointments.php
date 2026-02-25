@@ -55,10 +55,10 @@
                         echo '<td class="px-4 py-2 border-b">' . htmlspecialchars($appt["id_type"]) . '</td>';
                         echo '<td class="px-4 py-2 border-b">' . htmlspecialchars($appt["status"]) . '</td>';
                         echo '<td class="px-4 py-2 border-b">';
-                        echo '<button class="bg-blue-500 text-white px-2 py-1 rounded mr-1">View</button>';
-                        echo '<button class="bg-green-500 text-white px-2 py-1 rounded mr-1">Approve</button>';
+                        echo '<button class="bg-blue-500 text-white px-2 py-1 rounded mr-1 view-btn" data-id="' . htmlspecialchars($appt["id"]) . '">View</button>';
+                        echo '<button class="bg-green-500 text-white px-2 py-1 rounded mr-1 approve-btn" data-id="' . htmlspecialchars($appt["id"]) . '">Approve</button>';
                         echo '<button class="bg-yellow-500 text-white px-2 py-1 rounded mr-1 resched-btn" data-id="' . htmlspecialchars($appt["id"]) . '">Resched</button>';
-                        echo '<button class="bg-red-500 text-white px-2 py-1 rounded">Cancel</button>';
+                        echo '<button class="bg-red-500 text-white px-2 py-1 rounded cancel-btn" data-id="' . htmlspecialchars($appt["id"]) . '">Cancel</button>';
                         echo '</td>';
                         echo '</tr>';
                     }
@@ -117,6 +117,50 @@ reschedForm.addEventListener('submit', function(e) {
     ajaxPost('/IDSystem/admin/appointments/reschedule', {id, date, time}, (resp, status) => {
         if (status === 200) location.reload();
         else alert('Failed to reschedule.');
+    });
+});
+// Approve
+document.querySelectorAll('.approve-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+        if (!confirm('Approve this appointment?')) return;
+        ajaxPost('/IDSystem/admin/appointments/approve', {id: this.dataset.id}, (resp, status) => {
+            if (status === 200) location.reload();
+            else alert('Failed to approve.');
+        });
+    });
+});
+
+// Cancel
+document.querySelectorAll('.cancel-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+        if (!confirm('Cancel this appointment?')) return;
+        ajaxPost('/IDSystem/admin/appointments/cancel', {id: this.dataset.id}, (resp, status) => {
+            if (status === 200) location.reload();
+            else alert('Failed to cancel.');
+        });
+    });
+});
+
+// View
+document.querySelectorAll('.view-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+        ajaxPost('/IDSystem/admin/appointments/view', {id: this.dataset.id}, (resp, status) => {
+            if (status === 200) {
+                try {
+                    const data = JSON.parse(resp);
+                    alert('Appointment Details:\n' +
+                        'Name: ' + (data.full_name || '') + '\n' +
+                        'Department: ' + (data.department || '') + '\n' +
+                        'Date & Time: ' + (data.scheduled_at || '') + '\n' +
+                        'Status: ' + (data.status || '') + '\n' +
+                        'Reason: ' + (data.reason || ''));
+                } catch (e) {
+                    alert(resp);
+                }
+            } else {
+                alert('Failed to fetch details.');
+            }
+        });
     });
 });
 </script>

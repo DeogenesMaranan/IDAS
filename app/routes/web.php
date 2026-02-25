@@ -45,4 +45,19 @@ $router->get('/api/student', function () {
     $controller->student();
 });
 
+$router->post('/admin/appointments/view', function () {
+    $controller = new HomeController();
+    $controller->viewAppointment();
+});
+
+$router->post('/admin/appointments/approve', function () {
+    $controller = new HomeController();
+    $controller->approveAppointment();
+});
+
+$router->post('/admin/appointments/cancel', function () {
+    $controller = new HomeController();
+    $controller->cancelAppointment();
+});
+
 return $router;
