@@ -146,4 +146,56 @@ class HomeController extends BaseController
 
         $this->json($data);
     }
+    /**
+     * Admin reschedule appointment handler
+     */
+    public function rescheduleAppointment(): void
+    {
+        // Only allow admins/superadmins
+        $sessionUser = $_SESSION['user'] ?? null;
+        if (empty($sessionUser) || !in_array($sessionUser['role'], ['ADMIN', 'SUPERADMIN'])) {
+            $this->json(['error' => 'Unauthorized'], 403);
+            return;
+        }
+
+        $input = Request::input();
+        $id = trim((string)($input['id'] ?? ''));
+        $date = trim((string)($input['date'] ?? ''));
+        $time = trim((string)($input['time'] ?? ''));
+        if ($id === '' || $date === '' || $time === '') {
+            $this->json(['error' => 'Missing fields'], 400);
+            return;
+        }
+
+        $appointmentModel = new Appointment();
+        $appt = $appointmentModel->findById($id);
+        if (!$appt) {
+            $this->json(['error' => 'Appointment not found'], 404);
+            return;
+        }
+
+        $oldStatus = $appt['status'];
+        $appointmentModel->id = $id;
+        $appointmentModel->user_id = $appt['user_id'];
+        $appointmentModel->reason = $appt['reason'];
+        $appointmentModel->id_picture_url = $appt['id_picture_url'];
+        $appointmentModel->signature_image = $appt['signature_image'];
+        $appointmentModel->contact_person_name = $appt['contact_person_name'];
+        $appointmentModel->contact_person_address = $appt['contact_person_address'];
+        $appointmentModel->contact_person_number = $appt['contact_person_number'];
+        $appointmentModel->scheduled_at = $date . ' ' . $time;
+        $appointmentModel->status = 'RESCHEDULED';
+        $appointmentModel->created_at = $appt['created_at'];
+        $appointmentModel->updated_at = '';
+
+        if ($appointmentModel->update()) {
+            // Log status change
+            $pdo = $appointmentModel->pdo;
+            $stmt = $pdo->prepare('INSERT INTO appointment_status_history (appointment_id, old_status, new_status, changed_by, changed_at) VALUES (?, ?, ?, ?, NOW())');
+            $stmt->execute([$id, $oldStatus, 'RESCHEDULED', $sessionUser['id']]);
+            $this->json(['success' => true]);
+        } else {
+            $this->json(['error' => 'Failed to update appointment'], 500);
+        }
+    }
 }

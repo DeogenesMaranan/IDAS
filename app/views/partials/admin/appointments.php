@@ -57,7 +57,7 @@
                         echo '<td class="px-4 py-2 border-b">';
                         echo '<button class="bg-blue-500 text-white px-2 py-1 rounded mr-1">View</button>';
                         echo '<button class="bg-green-500 text-white px-2 py-1 rounded mr-1">Approve</button>';
-                        echo '<button class="bg-yellow-500 text-white px-2 py-1 rounded mr-1">Resched</button>';
+                        echo '<button class="bg-yellow-500 text-white px-2 py-1 rounded mr-1 resched-btn" data-id="' . htmlspecialchars($appt["id"]) . '">Resched</button>';
                         echo '<button class="bg-red-500 text-white px-2 py-1 rounded">Cancel</button>';
                         echo '</td>';
                         echo '</tr>';
@@ -67,4 +67,56 @@
             </tbody>
         </table>
     </div>
+    <!-- Reschedule Modal -->
+    <div id="resched-modal" class="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50 hidden">
+        <div class="bg-white rounded shadow-lg p-6 w-80 relative">
+            <button id="close-resched-modal" class="absolute top-2 right-2 text-gray-500 hover:text-black">&times;</button>
+            <h2 class="text-xl font-bold mb-4">Reschedule Appointment</h2>
+            <form id="resched-form">
+                <input type="hidden" name="id" id="resched-appt-id">
+                <label class="block mb-2">Date</label>
+                <input type="date" name="date" id="resched-date" class="border rounded px-2 py-1 w-full mb-3" required>
+                <label class="block mb-2">Time</label>
+                <input type="time" name="time" id="resched-time" class="border rounded px-2 py-1 w-full mb-4" required>
+                <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded w-full">Submit</button>
+            </form>
+        </div>
+    </div>
+
 </div>
+<script>
+// Helper: AJAX POST
+function ajaxPost(url, data, cb) {
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', url);
+    xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+    xhr.onload = function() { cb(xhr.responseText, xhr.status); };
+    xhr.send(new URLSearchParams(data).toString());
+}
+
+// Reschedule
+const reschedModal = document.getElementById('resched-modal');
+const closeReschedModal = document.getElementById('close-resched-modal');
+const reschedForm = document.getElementById('resched-form');
+let reschedIdInput = document.getElementById('resched-appt-id');
+
+document.querySelectorAll('.resched-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+        reschedIdInput.value = this.dataset.id;
+        reschedModal.classList.remove('hidden');
+    });
+});
+closeReschedModal.addEventListener('click', () => {
+    reschedModal.classList.add('hidden');
+});
+reschedForm.addEventListener('submit', function(e) {
+    e.preventDefault();
+    const id = reschedIdInput.value;
+    const date = document.getElementById('resched-date').value;
+    const time = document.getElementById('resched-time').value;
+    ajaxPost('/IDSystem/admin/appointments/reschedule', {id, date, time}, (resp, status) => {
+        if (status === 200) location.reload();
+        else alert('Failed to reschedule.');
+    });
+});
+</script>

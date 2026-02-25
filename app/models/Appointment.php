@@ -31,7 +31,7 @@ class Appointment
     public string $created_at = '';
     public string $updated_at = '';
 
-    private \PDO $pdo;
+    public \PDO $pdo;
 
     public function __construct(?\PDO $pdo = null)
     {

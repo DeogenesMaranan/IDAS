@@ -29,9 +29,15 @@ $router->post('/logout', function () {
     $controller->logout();
 });
 
+
 $router->post('/appointments', function () {
     $controller = new HomeController();
     $controller->storeAppointment();
+});
+
+$router->post('/admin/appointments/reschedule', function () {
+    $controller = new HomeController();
+    $controller->rescheduleAppointment();
 });
 
 $router->get('/api/student', function () {
