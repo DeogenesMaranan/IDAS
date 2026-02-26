@@ -89,13 +89,15 @@
                     <label class="block text-sm font-medium">Select Time *</label>
                     <select id="time_slot" name="time_slot" disabled required class="w-full bg-gray-50 border rounded px-3 py-2 mt-2">
                         <option value="">Select time</option>
-                        <option value="08:00 AM">08:00 AM</option>
-                        <option value="09:00 AM">09:00 AM</option>
-                        <option value="10:00 AM">10:00 AM</option>
-                        <option value="11:00 AM">11:00 AM</option>
-                        <option value="01:00 PM">01:00 PM</option>
-                        <option value="02:00 PM">02:00 PM</option>
-                        <option value="03:00 PM">03:00 PM</option>
+                        <option value="08:00">08:00 AM</option>
+                        <option value="09:00">09:00 AM</option>
+                        <option value="10:00">10:00 AM</option>
+                        <option value="11:00">11:00 AM</option>
+                        <option value="12:00">12:00 PM</option>
+                        <option value="13:00">01:00 PM</option>
+                        <option value="14:00">02:00 PM</option>
+                        <option value="15:00">03:00 PM</option>
+                        <option value="16:00">04:00 PM</option>
                     </select>
                     <p id="time-help" class="text-sm text-gray-400 mt-2">Please select a date first to choose a time.</p>
                 </div>
@@ -315,9 +317,21 @@
     }
 
     if(timeSelect){
+        function formatTimeLabel(t24){
+            if(!t24) return '';
+            const parts = t24.split(':');
+            if(parts.length < 1) return t24;
+            let hour = parseInt(parts[0], 10);
+            const minute = parts[1] || '00';
+            const ampm = hour >= 12 ? 'PM' : 'AM';
+            hour = hour % 12;
+            if(hour === 0) hour = 12;
+            return `${String(hour).padStart(2,'0')}:${minute} ${ampm}`;
+        }
+
         timeSelect.addEventListener('change', function(){
             if(this.value){
-                showToast(`Time set to ${this.value}`, 'success');
+                showToast(`Time set to ${formatTimeLabel(this.value)}`, 'success');
             }
         });
     }
