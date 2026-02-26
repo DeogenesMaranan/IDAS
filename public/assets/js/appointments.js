@@ -1,29 +1,7 @@
-function ajaxPost(url, data, callback) {
-    const xhr = new XMLHttpRequest();
-    xhr.open('POST', url, true);
-    xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
-    xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
-    xhr.onload = function() {
-        callback(xhr.responseText, xhr.status);
-    };
-    xhr.onerror = function() {
-        callback(null, 500);
-    };
-    xhr.send(new URLSearchParams(data).toString());
-}
-
-function ajaxGet(url, callback) {
-    const xhr = new XMLHttpRequest();
-    xhr.open('GET', url, true);
-    xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
-    xhr.onload = function() {
-        callback(xhr.responseText, xhr.status);
-    };
-    xhr.onerror = function() {
-        callback(null, 500);
-    };
-    xhr.send();
-}
+import { ajaxGet, ajaxPost } from './_http_helpers.js';
+import { initReschedModal } from './resched_modal.js';
+import { createActionButton } from './components/ActionButton.js';
+import { createTableRow } from './components/TableRow.js';
 
 function escapeHtml(text) {
     if (text === null || text === undefined) return '';
@@ -158,9 +136,6 @@ function renderAppointmentsTable(appointments) {
     bindActionButtons();
 }
 
-import { createActionButton } from './components/ActionButton.js';
-import { createTableRow } from './components/TableRow.js';
-
 function generateActionButtons(appt) {
     const fragment = document.createDocumentFragment();
     const viewBtn = createActionButton({
@@ -293,18 +268,19 @@ document.addEventListener('DOMContentLoaded', function() {
             btn.disabled = false;
         }, 2000);
     });
+    // initialize reschedule modal behavior
+    try {
+        initReschedModal();
+    } catch (e) {
+        console.warn('Resched modal init failed', e);
+    }
+    document.addEventListener('resched:success', () => {
+        showNotification('Appointment rescheduled successfully!', 'success');
+        fetchAppointments(searchInput.value, statusSelect.value);
+    });
 });
 
 function bindActionButtons() {
-    const reschedModal = document.getElementById('resched-modal');
-    const closeReschedModal = document.getElementById('close-resched-modal');
-    const reschedForm = document.getElementById('resched-form');
-    const reschedIdInput = document.getElementById('resched-appt-id');
-    const dateInput = document.getElementById('resched-date');
-    const timeInput = document.getElementById('resched-time');
-    if (dateInput) {
-        dateInput.min = new Date().toISOString().split('T')[0];
-    }
     document.querySelectorAll('.view-btn:not([disabled])').forEach(btn => {
         btn.addEventListener('click', function() {
             ajaxPost('/IDSystem/admin/appointments/view', { id: this.dataset.id }, (resp, status) => {
@@ -356,45 +332,11 @@ function bindActionButtons() {
     });
     document.querySelectorAll('.resched-btn').forEach(btn => {
         btn.addEventListener('click', function() {
-            reschedIdInput.value = this.dataset.id;
-            reschedModal.classList.remove('hidden');
-            const nextHour = new Date();
-            nextHour.setHours(nextHour.getHours() + 1, 0, 0, 0);
-            if (timeInput) {
-                timeInput.value = nextHour.toTimeString().slice(0, 5);
-            }
+            const ev = new CustomEvent('resched:open', { detail: { id: this.dataset.id } });
+            document.dispatchEvent(ev);
         });
     });
-    closeReschedModal.addEventListener('click', () => {
-        reschedModal.classList.add('hidden');
-        reschedForm.reset();
-    });
-    reschedModal.addEventListener('click', (e) => {
-        if (e.target === reschedModal) {
-            reschedModal.classList.add('hidden');
-            reschedForm.reset();
-        }
-    });
-    reschedForm.addEventListener('submit', function(e) {
-        e.preventDefault();
-        const id = reschedIdInput.value;
-        const date = dateInput.value;
-        const time = timeInput.value;
-        if (!date || !time) {
-            alert('Please select both date and time.');
-            return;
-        }
-        ajaxPost('/IDSystem/admin/appointments/reschedule', { id, date, time }, (resp, status) => {
-            if (status === 200) {
-                showNotification('Appointment rescheduled successfully!', 'success');
-                reschedModal.classList.add('hidden');
-                reschedForm.reset();
-                fetchAppointments(searchInput.value, statusSelect.value);
-            } else {
-                alert('Failed to reschedule appointment.');
-            }
-        });
-    });
+    // reschedule modal handled in resched_modal.js via 'resched:open' events
     document.querySelectorAll('.cancel-btn').forEach(btn => {
         btn.addEventListener('click', function() {
             if (!confirm('Cancel this appointment?')) return;

@@ -76,4 +76,14 @@ $router->post('/admin/appointments/complete', function () {
     $controller->completeAppointment();
 });
 
+$router->get('/admin/appointments/daily-counts', function () {
+    $controller = new HomeController();
+    $controller->dailyCounts();
+});
+
+$router->get('/admin/appointments/slot-counts', function () {
+    $controller = new HomeController();
+    $controller->slotCounts();
+});
+
 return $router;

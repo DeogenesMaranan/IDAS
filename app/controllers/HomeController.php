@@ -47,6 +47,80 @@ class HomeController extends BaseController
         }
         $this->json(array_values($filtered));
     }
+
+    /**
+     * Return daily counts of scheduled appointments starting from a date
+     * Query params: start=YYYY-MM-DD, days=int
+     */
+    public function dailyCounts(): void
+    {
+        $sessionUser = $_SESSION['user'] ?? null;
+        if (empty($sessionUser) || !in_array($sessionUser['role'], ['ADMIN', 'SUPERADMIN'])) {
+            $this->json(['error' => 'Unauthorized'], 403);
+            return;
+        }
+
+        $query = Request::query();
+        $start = trim((string)($query['start'] ?? date('Y-m-d')));
+        $days = (int)($query['days'] ?? 30);
+        $days = max(1, min(365, $days));
+
+        $appointmentModel = new Appointment();
+        $pdo = $appointmentModel->pdo;
+
+        $stmt = $pdo->prepare('SELECT DATE(scheduled_at) AS d, COUNT(*) AS c FROM appointments WHERE DATE(scheduled_at) >= :start GROUP BY DATE(scheduled_at)');
+        $stmt->execute([':start' => $start]);
+        $rows = $stmt->fetchAll();
+        $map = [];
+        foreach ($rows as $r) {
+            $map[$r['d']] = (int)$r['c'];
+        }
+
+        $result = [];
+        $dt = new DateTime($start);
+        for ($i = 0; $i < $days; $i++) {
+            $dstr = $dt->format('Y-m-d');
+            $result[$dstr] = $map[$dstr] ?? 0;
+            $dt->modify('+1 day');
+        }
+
+        $this->json($result);
+    }
+
+    /**
+     * Return counts grouped by time for a given date
+     * Query param: date=YYYY-MM-DD
+     */
+    public function slotCounts(): void
+    {
+        $sessionUser = $_SESSION['user'] ?? null;
+        if (empty($sessionUser) || !in_array($sessionUser['role'], ['ADMIN', 'SUPERADMIN'])) {
+            $this->json(['error' => 'Unauthorized'], 403);
+            return;
+        }
+
+        $query = Request::query();
+        $date = trim((string)($query['date'] ?? ''));
+        if ($date === '') {
+            $this->json(['error' => 'Missing date'], 400);
+            return;
+        }
+
+        $appointmentModel = new Appointment();
+        $pdo = $appointmentModel->pdo;
+
+        // Group by hour:minute portion
+        $stmt = $pdo->prepare("SELECT DATE_FORMAT(scheduled_at, '%H:%i') AS t, COUNT(*) AS c FROM appointments WHERE DATE(scheduled_at) = :date GROUP BY t");
+        $stmt->execute([':date' => $date]);
+        $rows = $stmt->fetchAll();
+        $map = [];
+        foreach ($rows as $r) {
+            $map[$r['t']] = (int)$r['c'];
+        }
+
+        $this->json($map);
+    }
+    
     public function index(): void
     {
         $sessionUser = $_SESSION['user'] ?? null;
