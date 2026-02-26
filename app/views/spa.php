@@ -18,7 +18,7 @@ $active = $active ?? ($role === 'STUDENT' || $role === 'FACULTY' ? 'book' : 'das
     <?php require __DIR__ . '/components/role_header.php'; ?>
     <?php require __DIR__ . '/components/role_sidebar.php'; ?>
 
-    <main class="ml-[340px] p-6" id="spa-root">
+    <main class="ml-[340px] px-8" id="spa-root">
         <div id="spa-content">
 
             <?php if (in_array($role, ['STUDENT', 'FACULTY'], true)): ?>
