@@ -8,14 +8,15 @@ $active = $active ?? ($role === 'STUDENT' || $role === 'FACULTY' ? 'book' : 'das
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <?php require __DIR__ . '/head.php'; ?>
+    <?php require __DIR__ . '/components/head.php'; ?>
     <title><?php echo htmlspecialchars($title ?? 'BEC Portal', ENT_QUOTES, 'UTF-8'); ?></title>
     <style>
         .hidden { display: none; }
     </style>
 </head>
 <body>
-    <?php require __DIR__ . '/role_sidebar.php'; ?>
+    <?php require __DIR__ . '/components/role_header.php'; ?>
+    <?php require __DIR__ . '/components/role_sidebar.php'; ?>
 
     <main class="ml-[340px] p-6" id="spa-root">
         <div id="spa-content">

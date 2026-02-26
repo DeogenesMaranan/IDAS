@@ -3,9 +3,8 @@ $role   = strtoupper($role ?? '');
 $active = $active ?? '';
 ?>
 
-<aside class="fixed left-0 top-0 bottom-0 w-[340px] p-10 bg-gradient-to-b from-[#9e1515] to-[#7b0b0b] text-white flex flex-col font-sans shadow-2xl">
+<aside class="fixed left-0 top-0 bottom-0 w-[340px] p-10 bg-gradient-to-b from-[#9e1515] to-[#7b0b0b] text-white flex flex-col font-sans shadow-2xl" style="z-index:41;">
 
-    <!-- BRAND / HEADER -->
     <div class="flex items-center gap-5 pb-8 border-b border-white/20">
         <div class="w-20 h-20 rounded-full bg-white flex items-center justify-center shadow-md">
             <img src="/IDSystem/public/assets/images/BEC-logo.png"
@@ -21,7 +20,6 @@ $active = $active ?? '';
         </div>
     </div>
 
-    <!-- NAVIGATION -->
     <nav class="flex-1 mt-8">
         <ul class="space-y-3 text-[17px]">
 
@@ -138,7 +136,6 @@ $active = $active ?? '';
         </ul>
     </nav>
 
-    <!-- LOGOUT -->
     <div class="pt-8 border-t border-white/20">
         <form action="/IDSystem/logout" method="POST">
             <button type="submit"
