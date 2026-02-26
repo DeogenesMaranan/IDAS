@@ -6,6 +6,7 @@ require_once __DIR__ . '/../core/Router.php';
 require_once __DIR__ . '/../core/Request.php';
 require_once __DIR__ . '/../controllers/HomeController.php';
 require_once __DIR__ . '/../controllers/AppointmentController.php';
+require_once __DIR__ . '/../controllers/UserController.php';
 require_once __DIR__ . '/../middleware/AuthMiddleware.php';
 require_once __DIR__ . '/../middleware/middlewares.php';
 require_once __DIR__ . '/../controllers/AuthController.php';
@@ -36,7 +37,7 @@ $router->post('/logout', function () {
 $router->post('/appointments', [
     ['mw_require_auth'],
     function () {
-        $controller = new HomeController();
+        $controller = new AppointmentController();
         $controller->storeAppointment();
     }
 ]);
@@ -61,7 +62,7 @@ $router->post('/admin/appointments/reschedule', [
 $router->get('/api/student', [
     ['mw_require_auth'],
     function () {
-        $controller = new HomeController();
+        $controller = new UserController();
         $controller->student();
     }
 ]);

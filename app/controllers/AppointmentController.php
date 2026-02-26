@@ -44,6 +44,47 @@ class AppointmentController extends BaseController
         $this->json(array_values($filtered));
     }
 
+    public function storeAppointment(): void
+    {
+        if (!$this->requireAuth()) {
+            $_SESSION['flash'] = ['error' => 'You must be signed in to create an appointment.'];
+            \Response::redirect('/IDSystem/');
+            return;
+        }
+
+        $sessionUser = $_SESSION['user'] ?? null;
+
+        $input = Request::input();
+        $reason = trim((string) ($input['reason'] ?? ''));
+        $appointmentDate = trim((string) ($input['appointment_date'] ?? ''));
+        $timeSlot = trim((string) ($input['time_slot'] ?? ''));
+
+        if ($reason === '') {
+            $_SESSION['flash'] = ['error' => 'Reason is required.'];
+            \Response::redirect('/IDSystem/');
+            return;
+        }
+        if ($appointmentDate === '' || $timeSlot === '') {
+            $_SESSION['flash'] = ['error' => 'Date and time are required.'];
+            \Response::redirect('/IDSystem/');
+            return;
+        }
+
+        $slotParts = explode('-', $timeSlot);
+        $startTime = isset($slotParts[0]) ? $slotParts[0] : '08:00';
+        $scheduledAt = $appointmentDate . ' ' . $startTime;
+
+        $svc = new AppointmentService();
+        $ok = $svc->createAppointment((string)$sessionUser['id'], $reason, $scheduledAt);
+        if ($ok) {
+            $_SESSION['flash'] = ['success' => 'Appointment created successfully.'];
+        } else {
+            $_SESSION['flash'] = ['error' => 'Failed to create appointment.'];
+        }
+
+        \Response::redirect('/IDSystem/');
+    }
+
     public function dailyCounts(): void
     {
         
