@@ -1,6 +1,6 @@
 <div class="space-y-6">
     <div class="relative overflow-hidden">
-        <div class="relative px-6 py-8">
+        <div class="relative px-6">
             <h1 class="text-4xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent">Appointment Management</h1>
             <p class="text-slate-600 text-lg mt-1 flex items-center gap-2">
                 View and manage all ID appointment requests

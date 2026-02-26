@@ -18,7 +18,7 @@ $active = $active ?? ($role === 'STUDENT' || $role === 'FACULTY' ? 'book' : 'das
     <?php Response::partial('components/role_header', ['fullName' => $fullName, 'sessionUser' => $sessionUser, 'role' => $role]); ?>
     <?php Response::partial('components/role_sidebar', ['role' => $role, 'active' => $active]); ?>
 
-    <main class="ml-[340px] px-8" id="spa-root">
+    <main class="ml-[340px] p-8" id="spa-root">
         <div id="spa-content">
 
             <?php if (in_array($role, ['STUDENT', 'FACULTY'], true)): ?>
