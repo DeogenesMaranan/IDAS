@@ -39,5 +39,6 @@ $active = $active ?? ($role === 'STUDENT' || $role === 'FACULTY' ? 'book' : 'das
         window.__INITIAL_SPA_PAGE = '<?php echo addslashes($active); ?>';
     </script>
     <script src="/IDSystem/public/assets/js/spa.js"></script>
+    <?php if (in_array($role, ['ADMIN','SUPERADMIN'], true)) { Response::partial('partials/admin/components/resched_modal'); } ?>
 </body>
 </html>

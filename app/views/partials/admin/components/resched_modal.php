@@ -1,4 +1,4 @@
-<div id="resched-modal" class="fixed inset-0 bg-black/50 backdrop-blur-sm hidden flex items-center justify-center z-50 p-4">
+<div id="resched-modal" class="fixed inset-0 bg-black/50 backdrop-blur-sm hidden flex items-center justify-center z-50 p-0">
     <div class="bg-white rounded-2xl w-full max-w-3xl shadow-2xl relative animate-fadeIn">
         <div class="bg-gradient-to-r from-blue-600 to-indigo-600 p-6 rounded-t-2xl">
             <button id="close-resched-modal" class="absolute top-4 right-4 text-white/80 hover:text-white text-3xl transition-colors">&times;</button>

@@ -117,8 +117,6 @@
         </div>
     </div>
 
-    <?php Response::partial('partials/admin/components/resched_modal'); ?>
-
 </div>
 
 <script type="module" src="/IDSystem/public/assets/js/appointments.js"></script>
