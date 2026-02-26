@@ -224,12 +224,16 @@ function updateSummaryBar(appointments) {
 }
 
 let fetchTimeout;
-function fetchAppointments(search, status) {
+function fetchAppointments(search = '', status = '', dateFrom = '', dateTo = '') {
     clearTimeout(fetchTimeout);
     fetchTimeout = setTimeout(() => {
-        const searchVal = search.trim();
-        const postData = { search: searchVal, status: status };
+        const searchVal = String(search || '').trim();
+        // convert date-only inputs to inclusive datetimes expected by server
+        const df = dateFrom ? (dateFrom.length === 10 ? `${dateFrom} 00:00:00` : dateFrom) : '';
+        const dt = dateTo ? (dateTo.length === 10 ? `${dateTo} 23:59:59` : dateTo) : '';
+        const postData = { search: searchVal, status: status, date_from: df, date_to: dt };
         ajaxPost('/IDSystem/admin/appointments/list', postData, (resp, code) => {
+            // response handled below
             if (code === 200) {
                 try {
                     const data = JSON.parse(resp);
@@ -249,25 +253,40 @@ function fetchAppointments(search, status) {
     }, 300);
 }
 
-document.addEventListener('DOMContentLoaded', function() {
-    document.getElementById('export-excel-btn').addEventListener('click', function() {
-        const search = searchInput.value;
-        const status = statusSelect.value;
-        const params = new URLSearchParams({ search, status });
-        const btn = this;
-        const originalText = btn.innerHTML;
-        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Exporting...';
-        btn.disabled = true;
-        const iframe = document.createElement('iframe');
-        iframe.style.display = 'none';
-        iframe.src = '/IDSystem/admin/appointments/export-excel?' + params.toString();
-        document.body.appendChild(iframe);
-        setTimeout(() => {
-            document.body.removeChild(iframe);
-            btn.innerHTML = originalText;
-            btn.disabled = false;
-        }, 2000);
-    });
+function initAppointments() {
+    const exportBtn = document.getElementById('export-excel-btn');
+    const searchInput = document.getElementById('search-input');
+    const statusSelect = document.getElementById('status-select');
+    const dateFromInput = document.getElementById('date-from');
+    const dateToInput = document.getElementById('date-to');
+
+    if (dateFromInput && !dateFromInput.value) {
+        dateFromInput.value = new Date().toISOString().slice(0, 10);
+    }
+
+    if (exportBtn) {
+        exportBtn.addEventListener('click', function() {
+            const search = (searchInput && searchInput.value) || '';
+            const status = (statusSelect && statusSelect.value) || '';
+            const dateFrom = (dateFromInput && dateFromInput.value) || '';
+            const dateTo = (dateToInput && dateToInput.value) || '';
+            const params = new URLSearchParams({ search, status, date_from: dateFrom, date_to: dateTo });
+            const btn = this;
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Exporting...';
+            btn.disabled = true;
+            const iframe = document.createElement('iframe');
+            iframe.style.display = 'none';
+            iframe.src = '/IDSystem/admin/appointments/export-excel?' + params.toString();
+            document.body.appendChild(iframe);
+            setTimeout(() => {
+                document.body.removeChild(iframe);
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            }, 2000);
+        });
+    }
+
     // initialize reschedule modal behavior
     try {
         initReschedModal();
@@ -276,9 +295,50 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     document.addEventListener('resched:success', () => {
         showNotification('Appointment rescheduled successfully!', 'success');
-        fetchAppointments(searchInput.value, statusSelect.value);
+        fetchAppointments((searchInput && searchInput.value) || '', (statusSelect && statusSelect.value) || '', (dateFromInput && dateFromInput.value) || '', (dateToInput && dateToInput.value) || '');
     });
-});
+
+    // wire inputs (guard in case elements missing)
+    if (searchInput) {
+        searchInput.addEventListener('input', () => {
+            fetchAppointments((searchInput && searchInput.value) || '', (statusSelect && statusSelect.value) || '', (dateFromInput && dateFromInput.value) || '', (dateToInput && dateToInput.value) || '');
+        });
+    }
+    if (statusSelect) {
+        statusSelect.addEventListener('change', () => {
+            fetchAppointments((searchInput && searchInput.value) || '', (statusSelect && statusSelect.value) || '', (dateFromInput && dateFromInput.value) || '', (dateToInput && dateToInput.value) || '');
+        });
+    }
+    if (dateFromInput) {
+        dateFromInput.addEventListener('change', () => {
+            if (dateToInput && dateToInput.value && dateFromInput.value > dateToInput.value) {
+                dateToInput.value = dateFromInput.value;
+            }
+            fetchAppointments((searchInput && searchInput.value) || '', (statusSelect && statusSelect.value) || '', (dateFromInput && dateFromInput.value) || '', (dateToInput && dateToInput.value) || '');
+        });
+    }
+    if (dateToInput) {
+        dateToInput.addEventListener('change', () => {
+            fetchAppointments((searchInput && searchInput.value) || '', (statusSelect && statusSelect.value) || '', (dateFromInput && dateFromInput.value) || '', (dateToInput && dateToInput.value) || '');
+        });
+    }
+
+    // initial fetch
+    fetchAppointments((searchInput && searchInput.value) || '', (statusSelect && statusSelect.value) || '', (dateFromInput && dateFromInput.value) || '', (dateToInput && dateToInput.value) || '');
+    document.addEventListener('keydown', (e) => {
+        if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+            e.preventDefault();
+            const s = document.getElementById('search-input');
+            if (s) s.focus();
+        }
+    });
+}
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initAppointments);
+} else {
+    initAppointments();
+}
 
 function bindActionButtons() {
     document.querySelectorAll('.view-btn:not([disabled])').forEach(btn => {
@@ -310,7 +370,12 @@ function bindActionButtons() {
             ajaxPost('/IDSystem/admin/appointments/approve', { id: this.dataset.id }, (resp, status) => {
                 if (status === 200) {
                     showNotification('Appointment approved successfully!', 'success');
-                    fetchAppointments(searchInput.value, statusSelect.value);
+                    fetchAppointments(
+                        document.getElementById('search-input')?.value || '',
+                        document.getElementById('status-select')?.value || '',
+                        document.getElementById('date-from')?.value || '',
+                        document.getElementById('date-to')?.value || ''
+                    );
                 } else {
                     alert('Failed to approve appointment.');
                 }
@@ -323,7 +388,12 @@ function bindActionButtons() {
             ajaxPost('/IDSystem/admin/appointments/complete', { id: this.dataset.id }, (resp, status) => {
                 if (status === 200) {
                     showNotification('Appointment marked as completed!', 'success');
-                    fetchAppointments(searchInput.value, statusSelect.value);
+                            fetchAppointments(
+                                document.getElementById('search-input')?.value || '',
+                                document.getElementById('status-select')?.value || '',
+                                document.getElementById('date-from')?.value || '',
+                                document.getElementById('date-to')?.value || ''
+                            );
                 } else {
                     alert('Failed to mark as completed.');
                 }
@@ -343,7 +413,12 @@ function bindActionButtons() {
             ajaxPost('/IDSystem/admin/appointments/cancel', { id: this.dataset.id }, (resp, status) => {
                 if (status === 200) {
                     showNotification('Appointment canceled successfully!', 'info');
-                    fetchAppointments(searchInput.value, statusSelect.value);
+                    fetchAppointments(
+                        document.getElementById('search-input')?.value || '',
+                        document.getElementById('status-select')?.value || '',
+                        document.getElementById('date-from')?.value || '',
+                        document.getElementById('date-to')?.value || ''
+                    );
                 } else {
                     alert('Failed to cancel appointment.');
                 }
@@ -351,25 +426,3 @@ function bindActionButtons() {
         });
     });
 }
-
-function showNotification(message, type = 'info') {
-    console.log(`[${type.toUpperCase()}] ${message}`);
-}
-
-const searchInput = document.getElementById('search-input');
-const statusSelect = document.getElementById('status-select');
-searchInput.addEventListener('input', () => {
-    fetchAppointments(searchInput.value, statusSelect.value);
-});
-statusSelect.addEventListener('change', () => {
-    fetchAppointments(searchInput.value, statusSelect.value);
-});
-
-fetchAppointments(searchInput.value, statusSelect.value);
-
-document.addEventListener('keydown', (e) => {
-    if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
-        e.preventDefault();
-        searchInput.focus();
-    }
-});

@@ -17,9 +17,23 @@ class AppointmentController extends BaseController
         $input = Request::input();
         $search = trim((string)($input['search'] ?? ''));
         $status = trim((string)($input['status'] ?? ''));
+        $dateFrom = trim((string)($input['date_from'] ?? ''));
+        $dateTo = trim((string)($input['date_to'] ?? ''));
 
         $appointments = Appointment::getAllWithProfile();
         $filtered = [];
+        // prepare date range timestamps if provided
+        $fromTs = null;
+        $toTs = null;
+        if ($dateFrom !== '') {
+            $fromVal = strlen($dateFrom) === 10 ? $dateFrom . ' 00:00:00' : $dateFrom;
+            $fromTs = strtotime($fromVal);
+        }
+        if ($dateTo !== '') {
+            $toVal = strlen($dateTo) === 10 ? $dateTo . ' 23:59:59' : $dateTo;
+            $toTs = strtotime($toVal);
+        }
+
         foreach ($appointments as $appt) {
             $match = true;
             if ($search !== '') {
@@ -28,10 +42,22 @@ class AppointmentController extends BaseController
             if ($match && $status !== '') {
                 $match = ($appt['status'] ?? '') === $status;
             }
+            // date range filter (scheduled_at expected as 'Y-m-d H:i:s')
+            if ($match && ($fromTs !== null || $toTs !== null)) {
+                $sched = $appt['scheduled_at'] ?? '';
+                $schedTs = $sched !== '' ? strtotime($sched) : null;
+                if ($schedTs === null) {
+                    $match = false;
+                } else {
+                    if ($fromTs !== null && $schedTs < $fromTs) $match = false;
+                    if ($toTs !== null && $schedTs > $toTs) $match = false;
+                }
+            }
             if ($match) $filtered[] = $appt;
         }
 
-        if ($search === '') {
+        // If no search and no date range provided, allow quick shortcuts
+        if ($search === '' && $dateFrom === '' && $dateTo === '') {
             if ($status === '') {
                 $filtered = $appointments;
             } else {
@@ -193,8 +219,21 @@ class AppointmentController extends BaseController
     {
         $search = trim((string)($_GET['search'] ?? ''));
         $status = trim((string)($_GET['status'] ?? ''));
+        $dateFrom = trim((string)($_GET['date_from'] ?? ''));
+        $dateTo = trim((string)($_GET['date_to'] ?? ''));
         $appointments = Appointment::getAllWithProfile();
         $filtered = [];
+        $fromTs = null;
+        $toTs = null;
+        if ($dateFrom !== '') {
+            $fromVal = strlen($dateFrom) === 10 ? $dateFrom . ' 00:00:00' : $dateFrom;
+            $fromTs = strtotime($fromVal);
+        }
+        if ($dateTo !== '') {
+            $toVal = strlen($dateTo) === 10 ? $dateTo . ' 23:59:59' : $dateTo;
+            $toTs = strtotime($toVal);
+        }
+
         foreach ($appointments as $appt) {
             $match = true;
             if ($search !== '') {
@@ -203,9 +242,20 @@ class AppointmentController extends BaseController
             if ($match && $status !== '') {
                 $match = ($appt['status'] ?? '') === $status;
             }
+            if ($match && ($fromTs !== null || $toTs !== null)) {
+                $sched = $appt['scheduled_at'] ?? '';
+                $schedTs = $sched !== '' ? strtotime($sched) : null;
+                if ($schedTs === null) {
+                    $match = false;
+                } else {
+                    if ($fromTs !== null && $schedTs < $fromTs) $match = false;
+                    if ($toTs !== null && $schedTs > $toTs) $match = false;
+                }
+            }
             if ($match) $filtered[] = $appt;
         }
-        if ($search === '') {
+        // If no search and no date range provided, allow quick shortcuts
+        if ($search === '' && $dateFrom === '' && $dateTo === '') {
             if ($status === '') {
                 $filtered = $appointments;
             } else {

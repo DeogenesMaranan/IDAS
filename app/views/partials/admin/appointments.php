@@ -89,6 +89,26 @@
             </select>
         </div>
 
+        <div class="relative min-w-[160px]">
+            <i class="fas fa-calendar-alt absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 z-10"></i>
+            <input
+                type="date"
+                id="date-from"
+                value="<?php echo htmlspecialchars($_GET['date_from'] ?? date('Y-m-d'), ENT_QUOTES, 'UTF-8'); ?>"
+                class="w-full pl-11 pr-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none appearance-none bg-white/70 cursor-pointer"
+            />
+        </div>
+
+        <div class="relative min-w-[160px]">
+            <i class="fas fa-calendar-alt absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 z-10"></i>
+            <input
+                type="date"
+                id="date-to"
+                value="<?php echo htmlspecialchars($_GET['date_to'] ?? '', ENT_QUOTES, 'UTF-8'); ?>"
+                class="w-full pl-11 pr-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none appearance-none bg-white/70 cursor-pointer"
+            />
+        </div>
+
         <button
             id="export-excel-btn"
             class="ml-auto bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 text-white px-6 py-3 rounded-xl flex items-center gap-3 shadow-lg hover:shadow-xl transition-all duration-200 font-medium"
