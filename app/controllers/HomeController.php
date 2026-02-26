@@ -10,116 +10,6 @@ require_once __DIR__ . '/../core/Response.php';
 
 class HomeController extends BaseController
 {
-    /**
-     * Admin AJAX appointment list handler
-     */
-    public function listAppointmentsAjax(): void
-    {
-        $sessionUser = $_SESSION['user'] ?? null;
-        if (empty($sessionUser) || !in_array($sessionUser['role'], ['ADMIN', 'SUPERADMIN'])) {
-            $this->json(['error' => 'Unauthorized'], 403);
-            return;
-        }
-        $input = Request::input();
-        $search = trim((string)($input['search'] ?? ''));
-        $status = trim((string)($input['status'] ?? ''));
-        $appointments = Appointment::getAllWithProfile();
-        $filtered = [];
-        foreach ($appointments as $appt) {
-            $match = true;
-            if ($search !== '') {
-                $match = stripos($appt['full_name'], $search) !== false || stripos($appt['id'], $search) !== false;
-            }
-            if ($match && $status !== '') {
-                $match = $appt['status'] === $status;
-            }
-            if ($match) $filtered[] = $appt;
-        }
-        // If search is empty, show all (filtered by status if set)
-        if ($search === '') {
-            if ($status === '') {
-                $filtered = $appointments;
-            } else {
-                $filtered = array_filter($appointments, function($appt) use ($status) {
-                    return $appt['status'] === $status;
-                });
-            }
-        }
-        $this->json(array_values($filtered));
-    }
-
-    /**
-     * Return daily counts of scheduled appointments starting from a date
-     * Query params: start=YYYY-MM-DD, days=int
-     */
-    public function dailyCounts(): void
-    {
-        $sessionUser = $_SESSION['user'] ?? null;
-        if (empty($sessionUser) || !in_array($sessionUser['role'], ['ADMIN', 'SUPERADMIN'])) {
-            $this->json(['error' => 'Unauthorized'], 403);
-            return;
-        }
-
-        $query = Request::query();
-        $start = trim((string)($query['start'] ?? date('Y-m-d')));
-        $days = (int)($query['days'] ?? 30);
-        $days = max(1, min(365, $days));
-
-        $appointmentModel = new Appointment();
-        $pdo = $appointmentModel->pdo;
-
-        $stmt = $pdo->prepare("SELECT DATE(scheduled_at) AS d, COUNT(*) AS c FROM appointments WHERE DATE(scheduled_at) >= :start AND status = 'APPROVED' GROUP BY DATE(scheduled_at)");
-        $stmt->execute([':start' => $start]);
-        $rows = $stmt->fetchAll();
-        $map = [];
-        foreach ($rows as $r) {
-            $map[$r['d']] = (int)$r['c'];
-        }
-
-        $result = [];
-        $dt = new DateTime($start);
-        for ($i = 0; $i < $days; $i++) {
-            $dstr = $dt->format('Y-m-d');
-            $result[$dstr] = $map[$dstr] ?? 0;
-            $dt->modify('+1 day');
-        }
-
-        $this->json($result);
-    }
-
-    /**
-     * Return counts grouped by time for a given date
-     * Query param: date=YYYY-MM-DD
-     */
-    public function slotCounts(): void
-    {
-        $sessionUser = $_SESSION['user'] ?? null;
-        if (empty($sessionUser) || !in_array($sessionUser['role'], ['ADMIN', 'SUPERADMIN'])) {
-            $this->json(['error' => 'Unauthorized'], 403);
-            return;
-        }
-
-        $query = Request::query();
-        $date = trim((string)($query['date'] ?? ''));
-        if ($date === '') {
-            $this->json(['error' => 'Missing date'], 400);
-            return;
-        }
-
-        $appointmentModel = new Appointment();
-        $pdo = $appointmentModel->pdo;
-
-        // Group by hour:minute portion
-        $stmt = $pdo->prepare("SELECT DATE_FORMAT(scheduled_at, '%H:%i') AS t, COUNT(*) AS c FROM appointments WHERE DATE(scheduled_at) = :date AND status = 'APPROVED' GROUP BY t");
-        $stmt->execute([':date' => $date]);
-        $rows = $stmt->fetchAll();
-        $map = [];
-        foreach ($rows as $r) {
-            $map[$r['t']] = (int)$r['c'];
-        }
-
-        $this->json($map);
-    }
     
     public function index(): void
     {
@@ -188,13 +78,13 @@ class HomeController extends BaseController
 
     public function storeAppointment(): void
     {
-        $sessionUser = $_SESSION['user'] ?? null;
-
-        if (empty($sessionUser)) {
+        if (!$this->requireAuth()) {
             $_SESSION['flash'] = ['error' => 'You must be signed in to create an appointment.'];
             Response::redirect('/IDSystem/');
             return;
         }
+
+        $sessionUser = $_SESSION['user'] ?? null;
 
         $input = Request::input();
         $reason = trim((string) ($input['reason'] ?? ''));
@@ -212,7 +102,6 @@ class HomeController extends BaseController
             return;
         }
 
-        // Combine date and time slot into a single datetime string
         $slotParts = explode('-', $timeSlot);
         $startTime = isset($slotParts[0]) ? $slotParts[0] : '08:00';
         $scheduledAt = $appointmentDate . ' ' . $startTime;
@@ -234,13 +123,9 @@ class HomeController extends BaseController
 
     public function student(): void
     {
+        if (!$this->requireAuth()) return;
+
         $sessionUser = $_SESSION['user'] ?? null;
-
-        if (empty($sessionUser)) {
-            $this->json(['error' => 'Not authenticated'], 401);
-            return;
-        }
-
         $profileModel = new Profile();
         $profile = $profileModel->findByUserId((string) $sessionUser['id']);
 
@@ -257,12 +142,9 @@ class HomeController extends BaseController
 
         $this->json($data);
     }
-    /**
-     * Admin reschedule appointment handler
-     */
+    
     public function rescheduleAppointment(): void
     {
-        // Only allow admins/superadmins
         $sessionUser = $_SESSION['user'] ?? null;
         if (empty($sessionUser) || !in_array($sessionUser['role'], ['ADMIN', 'SUPERADMIN'])) {
             $this->json(['error' => 'Unauthorized'], 403);
@@ -300,7 +182,6 @@ class HomeController extends BaseController
         $appointmentModel->updated_at = '';
 
         if ($appointmentModel->update()) {
-            // Log status change
             $pdo = $appointmentModel->pdo;
             $stmt = $pdo->prepare('INSERT INTO appointment_status_history (appointment_id, old_status, new_status, changed_by, changed_at) VALUES (?, ?, ?, ?, NOW())');
             $stmt->execute([$id, $oldStatus, 'RESCHEDULED', $sessionUser['id']]);
@@ -309,9 +190,7 @@ class HomeController extends BaseController
             $this->json(['error' => 'Failed to update appointment'], 500);
         }
     }
-    /**
-     * Admin view appointment handler
-     */
+    
     public function viewAppointment(): void
     {
         $sessionUser = $_SESSION['user'] ?? null;
@@ -334,9 +213,6 @@ class HomeController extends BaseController
         $this->json($appt);
     }
 
-    /**
-     * Admin approve appointment handler
-     */
     public function approveAppointment(): void
     {
         $sessionUser = $_SESSION['user'] ?? null;
@@ -379,9 +255,6 @@ class HomeController extends BaseController
         }
     }
 
-    /**
-     * Admin cancel appointment handler
-     */
     public function cancelAppointment(): void
     {
         $sessionUser = $_SESSION['user'] ?? null;
@@ -424,9 +297,6 @@ class HomeController extends BaseController
         }
     }
 
-    /**
-     * Export filtered appointments to Excel (CSV for compatibility)
-     */
     public function exportAppointmentsExcel(): void
     {
         $sessionUser = $_SESSION['user'] ?? null;
@@ -525,9 +395,6 @@ class HomeController extends BaseController
         exit;
     }
     
-    /**
-     * Admin mark appointment as completed handler
-     */
     public function completeAppointment(): void
     {
         $sessionUser = $_SESSION['user'] ?? null;

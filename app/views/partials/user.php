@@ -3,13 +3,13 @@
 ?>
 
 <section id="book" class="spa-section <?php echo $active === 'book' ? '' : 'hidden'; ?>">
-    <?php require __DIR__ . '/user/booking.php'; ?>
+    <?php Response::partial('partials/user/booking', ['role' => $role ?? null, 'sessionUser' => $sessionUser ?? null, 'active' => $active ?? null]); ?>
 </section>
 
 <section id="schedules" class="spa-section <?php echo $active === 'schedules' ? '' : 'hidden'; ?>">
-    <?php require __DIR__ . '/user/schedules.php'; ?>
+    <?php Response::partial('partials/user/schedules', ['active' => $active ?? null, 'sessionUser' => $sessionUser ?? null]); ?>
 </section>
 
 <section id="profile" class="spa-section <?php echo $active === 'profile' ? '' : 'hidden'; ?>">
-    <?php require __DIR__ . '/user/profile.php'; ?>
+    <?php Response::partial('partials/user/profile', ['fullName' => $fullName ?? '', 'email' => $sessionUser['email'] ?? ($email ?? '' )]); ?>
 </section>

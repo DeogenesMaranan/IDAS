@@ -22,13 +22,13 @@ $required = '<span class="text-red-600 font-bold">*</span>';
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <?php require __DIR__ . '/head.php'; ?>
+    <?php require __DIR__ . '/components/head.php'; ?>
     <title><?php echo htmlspecialchars($title, ENT_QUOTES, 'UTF-8'); ?></title>
 </head>
 
 <body class="antialiased bg-gray-50 overflow-hidden text-xl">
 
-<?php require __DIR__ . '/components/toast.php'; ?>
+<?php Response::partial('components/toast', ['error' => $error ?? null, 'success' => $success ?? null]); ?>
 
 <div class="h-screen lg:grid lg:grid-cols-2">
 

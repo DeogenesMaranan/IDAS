@@ -117,7 +117,7 @@
         </div>
     </div>
 
-    <?php include __DIR__ . '/components/resched_modal.php'; ?>
+    <?php Response::partial('partials/admin/components/resched_modal'); ?>
 
 </div>
 

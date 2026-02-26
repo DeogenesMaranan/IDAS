@@ -9,12 +9,12 @@ class Router
         'POST' => [],
     ];
 
-    public function get(string $path, callable $handler): void
+    public function get(string $path, $handler): void
     {
         $this->routes['GET'][$this->normalize($path)] = $handler;
     }
 
-    public function post(string $path, callable $handler): void
+    public function post(string $path, $handler): void
     {
         $this->routes['POST'][$this->normalize($path)] = $handler;
     }
@@ -32,7 +32,28 @@ class Router
             return;
         }
 
-        $handler();
+        if (is_array($handler) && isset($handler[0]) && is_array($handler[0]) && isset($handler[1]) && is_callable($handler[1])) {
+            foreach ($handler[0] as $mw) {
+                if (is_callable($mw)) {
+                    $ok = $mw();
+                } else {
+                    $ok = true;
+                }
+                if ($ok === false) {
+                    return;
+                }
+            }
+            $handler[1]();
+            return;
+        }
+
+        if (is_callable($handler)) {
+            $handler();
+            return;
+        }
+
+        http_response_code(500);
+        echo 'Invalid route handler';
     }
 
     private function normalize(string $path): string

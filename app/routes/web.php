@@ -5,6 +5,9 @@ declare(strict_types=1);
 require_once __DIR__ . '/../core/Router.php';
 require_once __DIR__ . '/../core/Request.php';
 require_once __DIR__ . '/../controllers/HomeController.php';
+require_once __DIR__ . '/../controllers/AppointmentController.php';
+require_once __DIR__ . '/../middleware/AuthMiddleware.php';
+require_once __DIR__ . '/../middleware/middlewares.php';
 require_once __DIR__ . '/../controllers/AuthController.php';
 
 $router = new Router();
@@ -30,60 +33,93 @@ $router->post('/logout', function () {
 });
 
 
-$router->post('/appointments', function () {
-    $controller = new HomeController();
-    $controller->storeAppointment();
-});
+$router->post('/appointments', [
+    ['mw_require_auth'],
+    function () {
+        $controller = new HomeController();
+        $controller->storeAppointment();
+    }
+]);
 
 
-$router->post('/admin/appointments/list', function () {
-    $controller = new HomeController();
-    $controller->listAppointmentsAjax();
-});
+$router->post('/admin/appointments/list', [
+    ['mw_require_admin'],
+    function () {
+        $controller = new AppointmentController();
+        $controller->listAppointmentsAjax();
+    }
+]);
 
-$router->post('/admin/appointments/reschedule', function () {
-    $controller = new HomeController();
-    $controller->rescheduleAppointment();
-});
+$router->post('/admin/appointments/reschedule', [
+    ['mw_require_admin'],
+    function () {
+        $controller = new AppointmentController();
+        $controller->rescheduleAppointment();
+    }
+]);
 
-$router->get('/api/student', function () {
-    $controller = new HomeController();
-    $controller->student();
-});
+$router->get('/api/student', [
+    ['mw_require_auth'],
+    function () {
+        $controller = new HomeController();
+        $controller->student();
+    }
+]);
 
-$router->post('/admin/appointments/view', function () {
-    $controller = new HomeController();
-    $controller->viewAppointment();
-});
+$router->post('/admin/appointments/view', [
+    ['mw_require_admin'],
+    function () {
+        $controller = new AppointmentController();
+        $controller->viewAppointment();
+    }
+]);
 
-$router->post('/admin/appointments/approve', function () {
-    $controller = new HomeController();
-    $controller->approveAppointment();
-});
+$router->post('/admin/appointments/approve', [
+    ['mw_require_admin'],
+    function () {
+        $controller = new AppointmentController();
+        $controller->approveAppointment();
+    }
+]);
 
-$router->post('/admin/appointments/cancel', function () {
-    $controller = new HomeController();
-    $controller->cancelAppointment();
-});
+$router->post('/admin/appointments/cancel', [
+    ['mw_require_admin'],
+    function () {
+        $controller = new AppointmentController();
+        $controller->cancelAppointment();
+    }
+]);
 
-$router->get('/admin/appointments/export-excel', function () {
-    $controller = new HomeController();
-    $controller->exportAppointmentsExcel();
-});
+$router->get('/admin/appointments/export-excel', [
+    ['mw_require_admin'],
+    function () {
+        $controller = new AppointmentController();
+        $controller->exportAppointmentsExcel();
+    }
+]);
 
-$router->post('/admin/appointments/complete', function () {
-    $controller = new HomeController();
-    $controller->completeAppointment();
-});
+$router->post('/admin/appointments/complete', [
+    ['mw_require_admin'],
+    function () {
+        $controller = new AppointmentController();
+        $controller->completeAppointment();
+    }
+]);
 
-$router->get('/admin/appointments/daily-counts', function () {
-    $controller = new HomeController();
-    $controller->dailyCounts();
-});
+$router->get('/admin/appointments/daily-counts', [
+    ['mw_require_admin'],
+    function () {
+        $controller = new AppointmentController();
+        $controller->dailyCounts();
+    }
+]);
 
-$router->get('/admin/appointments/slot-counts', function () {
-    $controller = new HomeController();
-    $controller->slotCounts();
-});
+$router->get('/admin/appointments/slot-counts', [
+    ['mw_require_admin'],
+    function () {
+        $controller = new AppointmentController();
+        $controller->slotCounts();
+    }
+]);
 
 return $router;

@@ -4,9 +4,6 @@ require_once __DIR__ . '/Database.php';
 
 class Appointment
 {
-    /**
-     * Fetch all appointments with profile info for admin listing
-     */
     public static function getAllWithProfile(): array
     {
         $pdo = Database::getConnection();
@@ -117,5 +114,93 @@ class Appointment
     {
         $stmt = $this->pdo->prepare('DELETE FROM appointments WHERE id = :id');
         return $stmt->execute([':id' => $id]);
+    }
+
+    public function changeStatus(string $id, string $newStatus, string $changedBy): bool
+    {
+        try {
+            $this->pdo->beginTransaction();
+            $appt = $this->findById($id);
+            if (!$appt) {
+                $this->pdo->rollBack();
+                return false;
+            }
+            $oldStatus = $appt['status'];
+
+            $stmt = $this->pdo->prepare('UPDATE appointments SET status = :status, updated_at = :updated_at WHERE id = :id');
+            $updatedAt = Database::now();
+            $stmt->execute([':status' => $newStatus, ':updated_at' => $updatedAt, ':id' => $id]);
+
+            $stmt2 = $this->pdo->prepare('INSERT INTO appointment_status_history (appointment_id, old_status, new_status, changed_by, changed_at) VALUES (?, ?, ?, ?, NOW())');
+            $stmt2->execute([$id, $oldStatus, $newStatus, $changedBy]);
+
+            $this->pdo->commit();
+            return true;
+        } catch (\Exception $e) {
+            if ($this->pdo->inTransaction()) {
+                $this->pdo->rollBack();
+            }
+            return false;
+        }
+    }
+
+    public function rescheduleWithHistory(string $id, string $datetime, string $changedBy): bool
+    {
+        try {
+            $this->pdo->beginTransaction();
+            $appt = $this->findById($id);
+            if (!$appt) {
+                $this->pdo->rollBack();
+                return false;
+            }
+
+            $stmt = $this->pdo->prepare('UPDATE appointments SET scheduled_at = :scheduled_at, status = :status, updated_at = :updated_at WHERE id = :id');
+            $updatedAt = Database::now();
+            $stmt->execute([':scheduled_at' => $datetime, ':status' => 'RESCHEDULED', ':updated_at' => $updatedAt, ':id' => $id]);
+
+            $stmt2 = $this->pdo->prepare('INSERT INTO appointment_status_history (appointment_id, old_status, new_status, changed_by, changed_at) VALUES (?, ?, ?, ?, NOW())');
+            $stmt2->execute([$id, $appt['status'], 'RESCHEDULED', $changedBy]);
+
+            $this->pdo->commit();
+            return true;
+        } catch (\Exception $e) {
+            if ($this->pdo->inTransaction()) {
+                $this->pdo->rollBack();
+            }
+            return false;
+        }
+    }
+
+    public function getDailyCounts(string $start, int $days = 30): array
+    {
+        $stmt = $this->pdo->prepare("SELECT DATE(scheduled_at) AS d, COUNT(*) AS c FROM appointments WHERE DATE(scheduled_at) >= :start AND status = 'APPROVED' GROUP BY DATE(scheduled_at)");
+        $stmt->execute([':start' => $start]);
+        $rows = $stmt->fetchAll();
+        $map = [];
+        foreach ($rows as $r) {
+            $map[$r['d']] = (int)$r['c'];
+        }
+
+        $result = [];
+        $dt = new DateTime($start);
+        for ($i = 0; $i < $days; $i++) {
+            $dstr = $dt->format('Y-m-d');
+            $result[$dstr] = $map[$dstr] ?? 0;
+            $dt->modify('+1 day');
+        }
+
+        return $result;
+    }
+
+    public function getSlotCounts(string $date): array
+    {
+        $stmt = $this->pdo->prepare("SELECT DATE_FORMAT(scheduled_at, '%H:%i') AS t, COUNT(*) AS c FROM appointments WHERE DATE(scheduled_at) = :date AND status = 'APPROVED' GROUP BY t");
+        $stmt->execute([':date' => $date]);
+        $rows = $stmt->fetchAll();
+        $map = [];
+        foreach ($rows as $r) {
+            $map[$r['t']] = (int)$r['c'];
+        }
+        return $map;
     }
 }

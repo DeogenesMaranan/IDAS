@@ -18,6 +18,17 @@ class Response
         require __DIR__ . '/../views/' . $view . '.php';
     }
 
+    public static function partial(string $partial, array $params = []): void
+    {
+        extract($params, EXTR_SKIP);
+        $path = __DIR__ . '/../views/' . $partial . '.php';
+        if (file_exists($path)) {
+            require $path;
+        } else {
+            trigger_error("Missing view partial: {$partial}", E_USER_NOTICE);
+        }
+    }
+
     public static function redirect(string $location, int $statusCode = 302): void
     {
         http_response_code($statusCode);
