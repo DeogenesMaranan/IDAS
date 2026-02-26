@@ -68,7 +68,7 @@ class HomeController extends BaseController
         $appointmentModel = new Appointment();
         $pdo = $appointmentModel->pdo;
 
-        $stmt = $pdo->prepare('SELECT DATE(scheduled_at) AS d, COUNT(*) AS c FROM appointments WHERE DATE(scheduled_at) >= :start GROUP BY DATE(scheduled_at)');
+        $stmt = $pdo->prepare("SELECT DATE(scheduled_at) AS d, COUNT(*) AS c FROM appointments WHERE DATE(scheduled_at) >= :start AND status = 'APPROVED' GROUP BY DATE(scheduled_at)");
         $stmt->execute([':start' => $start]);
         $rows = $stmt->fetchAll();
         $map = [];
@@ -110,7 +110,7 @@ class HomeController extends BaseController
         $pdo = $appointmentModel->pdo;
 
         // Group by hour:minute portion
-        $stmt = $pdo->prepare("SELECT DATE_FORMAT(scheduled_at, '%H:%i') AS t, COUNT(*) AS c FROM appointments WHERE DATE(scheduled_at) = :date GROUP BY t");
+        $stmt = $pdo->prepare("SELECT DATE_FORMAT(scheduled_at, '%H:%i') AS t, COUNT(*) AS c FROM appointments WHERE DATE(scheduled_at) = :date AND status = 'APPROVED' GROUP BY t");
         $stmt->execute([':date' => $date]);
         $rows = $stmt->fetchAll();
         $map = [];
