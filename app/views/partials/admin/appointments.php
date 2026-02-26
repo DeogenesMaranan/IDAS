@@ -10,6 +10,7 @@
             <option value="RESCHEDULED" <?php echo (($_GET['status'] ?? '') === 'RESCHEDULED') ? 'selected' : ''; ?>>Rescheduled</option>
             <option value="CANCELED" <?php echo (($_GET['status'] ?? '') === 'CANCELED') ? 'selected' : ''; ?>>Canceled</option>
         </select>
+        <button type="button" id="export-excel-btn" class="bg-green-600 text-white px-4 py-2 rounded">Export</button>
     </form>
     <div class="overflow-x-auto mt-2">
         <table class="min-w-full bg-white border border-gray-200">
@@ -19,7 +20,7 @@
                     <th class="px-4 py-2 border-b">Name</th>
                     <th class="px-4 py-2 border-b">Department</th>
                     <th class="px-4 py-2 border-b">Date & Time</th>
-                    <th class="px-4 py-2 border-b">ID Type</th>
+                    <th class="px-4 py-2 border-b">ID Number</th>
                     <th class="px-4 py-2 border-b">Status</th>
                     <th class="px-4 py-2 border-b">Actions</th>
                 </tr>
@@ -46,6 +47,20 @@
 
 </div>
 <script>
+// Export to Excel
+document.getElementById('export-excel-btn').addEventListener('click', function() {
+    const search = searchInput.value;
+    const status = statusSelect.value;
+    // Build query string
+    const params = new URLSearchParams({search, status});
+    // Create a hidden iframe to trigger download
+    const iframe = document.createElement('iframe');
+    iframe.style.display = 'none';
+    iframe.src = '/IDSystem/admin/appointments/export-excel?' + params.toString();
+    document.body.appendChild(iframe);
+    // Remove iframe after download starts
+    setTimeout(() => document.body.removeChild(iframe), 2000);
+});
 // Helper: AJAX POST
 function ajaxPost(url, data, cb) {
     const xhr = new XMLHttpRequest();

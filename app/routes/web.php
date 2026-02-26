@@ -66,4 +66,9 @@ $router->post('/admin/appointments/cancel', function () {
     $controller->cancelAppointment();
 });
 
+$router->get('/admin/appointments/export-excel', function () {
+    $controller = new HomeController();
+    $controller->exportAppointmentsExcel();
+});
+
 return $router;

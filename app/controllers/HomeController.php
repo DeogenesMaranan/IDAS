@@ -349,4 +349,105 @@ class HomeController extends BaseController
             $this->json(['error' => 'Failed to cancel appointment'], 500);
         }
     }
+
+    /**
+     * Export filtered appointments to Excel (CSV for compatibility)
+     */
+    public function exportAppointmentsExcel(): void
+    {
+        $sessionUser = $_SESSION['user'] ?? null;
+        if (empty($sessionUser) || !in_array($sessionUser['role'], ['ADMIN', 'SUPERADMIN'])) {
+            http_response_code(403);
+            echo 'Unauthorized';
+            return;
+        }
+        $search = trim((string)($_GET['search'] ?? ''));
+        $status = trim((string)($_GET['status'] ?? ''));
+        $appointments = \Appointment::getAllWithProfile();
+        $filtered = [];
+        foreach ($appointments as $appt) {
+            $match = true;
+            if ($search !== '') {
+                $match = stripos($appt['full_name'], $search) !== false || stripos($appt['id'], $search) !== false;
+            }
+            if ($match && $status !== '') {
+                $match = $appt['status'] === $status;
+            }
+            if ($match) $filtered[] = $appt;
+        }
+        if ($search === '') {
+            if ($status === '') {
+                $filtered = $appointments;
+            } else {
+                $filtered = array_filter($appointments, function($appt) use ($status) {
+                    return $appt['status'] === $status;
+                });
+            }
+        }
+        // Output as CSV (Excel-compatible)
+        header('Content-Type: text/csv; charset=utf-8');
+        header('Content-Disposition: attachment; filename=appointments_export_' . date('Ymd_His') . '.csv');
+        $output = fopen('php://output', 'w');
+        // Output header row (all fields)
+        fputcsv($output, [
+            'Ref Number',
+            'Name',
+            'Department',
+            'Date & Time',
+            'ID Type',
+            'Status',
+            'Reason',
+            'ID Picture URL',
+            'Signature Image',
+            'Contact Person Name',
+            'Contact Person Address',
+            'Contact Person Number',
+            'Created At',
+            'Updated At',
+        ]);
+        foreach ($filtered as $appt) {
+            // Try to get extra fields if not present in getAllWithProfile
+            $reason = $appt['reason'] ?? '';
+            $id_picture_url = $appt['id_picture_url'] ?? '';
+            $signature_image = $appt['signature_image'] ?? '';
+            $contact_person_name = $appt['contact_person_name'] ?? '';
+            $contact_person_address = $appt['contact_person_address'] ?? '';
+            $contact_person_number = $appt['contact_person_number'] ?? '';
+            $created_at = $appt['created_at'] ?? '';
+            $updated_at = $appt['updated_at'] ?? '';
+            // If any are missing, fetch full row
+            if ($reason === '' || $created_at === '' || $id_picture_url === '' || $signature_image === '' || $contact_person_name === '' || $contact_person_address === '' || $contact_person_number === '' || $updated_at === '') {
+                $apptModel = new \Appointment();
+                $full = $apptModel->findById($appt['id']);
+                if ($full) {
+                    $reason = $full['reason'] ?? '';
+                    $id_picture_url = $full['id_picture_url'] ?? '';
+                    $signature_image = $full['signature_image'] ?? '';
+                    $contact_person_name = $full['contact_person_name'] ?? '';
+                    $contact_person_address = $full['contact_person_address'] ?? '';
+                    $contact_person_number = $full['contact_person_number'] ?? '';
+                    $created_at = $full['created_at'] ?? '';
+                    $updated_at = $full['updated_at'] ?? '';
+                }
+            }
+            fputcsv($output, [
+                $appt['id'],
+                $appt['full_name'],
+                $appt['department'],
+                $appt['scheduled_at'],
+                $appt['id_type'],
+                $appt['status'],
+                $reason,
+                $id_picture_url,
+                $signature_image,
+                $contact_person_name,
+                $contact_person_address,
+                $contact_person_number,
+                $created_at,
+                $updated_at,
+            ]);
+        }
+        fclose($output);
+        exit;
+    }
 }
