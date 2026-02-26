@@ -71,4 +71,9 @@ $router->get('/admin/appointments/export-excel', function () {
     $controller->exportAppointmentsExcel();
 });
 
+$router->post('/admin/appointments/complete', function () {
+    $controller = new HomeController();
+    $controller->completeAppointment();
+});
+
 return $router;

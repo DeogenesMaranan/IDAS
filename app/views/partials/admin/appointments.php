@@ -1,6 +1,25 @@
 <div>
     <h1 class="text-3xl font-bold mb-4">Appointments</h1>
     <p>Manage appointment requests.</p>
+    <!-- Summary Bar -->
+    <div id="summary-bar" class="flex gap-4 mb-4">
+        <div class="bg-gray-100 rounded px-4 py-2 flex flex-col items-center">
+            <span class="text-lg font-semibold" id="summary-total">0</span>
+            <span class="text-xs text-gray-600">Total</span>
+        </div>
+        <div class="bg-yellow-100 rounded px-4 py-2 flex flex-col items-center">
+            <span class="text-lg font-semibold" id="summary-pending">0</span>
+            <span class="text-xs text-gray-600">Pending</span>
+        </div>
+        <div class="bg-green-100 rounded px-4 py-2 flex flex-col items-center">
+            <span class="text-lg font-semibold" id="summary-approved">0</span>
+            <span class="text-xs text-gray-600">Approved</span>
+        </div>
+        <div class="bg-blue-100 rounded px-4 py-2 flex flex-col items-center">
+            <span class="text-lg font-semibold" id="summary-completed">0</span>
+            <span class="text-xs text-gray-600">Completed</span>
+        </div>
+    </div>
     <form id="search-form" class="flex items-center gap-4 mb-4" autocomplete="off">
         <input type="text" name="search" id="search-input" placeholder="Search by name or ref number" value="<?php echo htmlspecialchars($_GET['search'] ?? '', ENT_QUOTES, 'UTF-8'); ?>" class="border rounded px-3 py-2 w-64" />
         <select name="status" id="status-select" class="border rounded px-3 py-2">
@@ -104,6 +123,7 @@ function renderAppointmentsTable(appointments) {
             row += '<button class="bg-gray-400 text-white px-2 py-1 rounded mr-1 approve-btn" data-id="' + escapeHtml(appt.id) + '" disabled style="opacity:0.6;cursor:not-allowed;">Approve</button>';
             row += '<button class="bg-gray-400 text-white px-2 py-1 rounded mr-1 resched-btn" data-id="' + escapeHtml(appt.id) + '" disabled style="opacity:0.6;cursor:not-allowed;">Resched</button>';
             row += '<button class="bg-gray-400 text-white px-2 py-1 rounded cancel-btn" data-id="' + escapeHtml(appt.id) + '" disabled style="opacity:0.6;cursor:not-allowed;">Cancel</button>';
+            row += '<button class="bg-blue-600 text-white px-2 py-1 rounded complete-btn" data-id="' + escapeHtml(appt.id) + '">Completed</button>';
         } else if (appt.status === 'CANCELED') {
             row += '<button class="bg-gray-400 text-white px-2 py-1 rounded mr-1 approve-btn" data-id="' + escapeHtml(appt.id) + '" disabled style="opacity:0.6;cursor:not-allowed;">Approve</button>';
             row += '<button class="bg-gray-400 text-white px-2 py-1 rounded mr-1 resched-btn" data-id="' + escapeHtml(appt.id) + '" disabled style="opacity:0.6;cursor:not-allowed;">Resched</button>';
@@ -134,9 +154,8 @@ function formatDate(dt) {
     return d.toLocaleString('en-US', { month: 'short', day: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
 }
 
-// Fetch appointments
+// Fetch appointments and update summary bar
 function fetchAppointments(search, status) {
-    // If search is empty, send only status (or empty string for all)
     const searchVal = search.trim();
     const statusVal = status;
     let postData = {};
@@ -150,17 +169,47 @@ function fetchAppointments(search, status) {
             try {
                 const data = JSON.parse(resp);
                 renderAppointmentsTable(data);
+                updateSummaryBar(data);
             } catch (e) {
                 renderAppointmentsTable([]);
+                updateSummaryBar([]);
             }
         } else {
             renderAppointmentsTable([]);
+            updateSummaryBar([]);
         }
     });
 }
 
+// Update summary bar counts
+function updateSummaryBar(appointments) {
+    let total = 0, pending = 0, approved = 0, completed = 0;
+    if (Array.isArray(appointments)) {
+        total = appointments.length;
+        appointments.forEach(appt => {
+            if (appt.status === 'PENDING') pending++;
+            else if (appt.status === 'APPROVED') approved++;
+            else if (appt.status === 'COMPLETED') completed++;
+        });
+    }
+    document.getElementById('summary-total').textContent = total;
+    document.getElementById('summary-pending').textContent = pending;
+    document.getElementById('summary-approved').textContent = approved;
+    document.getElementById('summary-completed').textContent = completed;
+}
+
 // Bind action buttons
 function bindActionButtons() {
+        // Completed
+        document.querySelectorAll('.complete-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                if (!confirm('Mark this appointment as completed?')) return;
+                ajaxPost('/IDSystem/admin/appointments/complete', {id: this.dataset.id}, (resp, status) => {
+                    if (status === 200) fetchAppointments(searchInput.value, statusSelect.value);
+                    else alert('Failed to mark as completed.');
+                });
+            });
+        });
     // Reschedule
     const reschedModal = document.getElementById('resched-modal');
     const closeReschedModal = document.getElementById('close-resched-modal');

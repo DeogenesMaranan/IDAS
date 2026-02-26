@@ -450,4 +450,49 @@ class HomeController extends BaseController
         fclose($output);
         exit;
     }
+    
+    /**
+     * Admin mark appointment as completed handler
+     */
+    public function completeAppointment(): void
+    {
+        $sessionUser = $_SESSION['user'] ?? null;
+        if (empty($sessionUser) || !in_array($sessionUser['role'], ['ADMIN', 'SUPERADMIN'])) {
+            $this->json(['error' => 'Unauthorized'], 403);
+            return;
+        }
+        $input = Request::input();
+        $id = trim((string)($input['id'] ?? ''));
+        if ($id === '') {
+            $this->json(['error' => 'Missing appointment ID'], 400);
+            return;
+        }
+        $appointmentModel = new Appointment();
+        $appt = $appointmentModel->findById($id);
+        if (!$appt) {
+            $this->json(['error' => 'Appointment not found'], 404);
+            return;
+        }
+        $oldStatus = $appt['status'];
+        $appointmentModel->id = $id;
+        $appointmentModel->user_id = $appt['user_id'];
+        $appointmentModel->reason = $appt['reason'];
+        $appointmentModel->id_picture_url = $appt['id_picture_url'];
+        $appointmentModel->signature_image = $appt['signature_image'];
+        $appointmentModel->contact_person_name = $appt['contact_person_name'];
+        $appointmentModel->contact_person_address = $appt['contact_person_address'];
+        $appointmentModel->contact_person_number = $appt['contact_person_number'];
+        $appointmentModel->scheduled_at = $appt['scheduled_at'];
+        $appointmentModel->status = 'COMPLETED';
+        $appointmentModel->created_at = $appt['created_at'];
+        $appointmentModel->updated_at = '';
+        if ($appointmentModel->update()) {
+            $pdo = $appointmentModel->pdo;
+            $stmt = $pdo->prepare('INSERT INTO appointment_status_history (appointment_id, old_status, new_status, changed_by, changed_at) VALUES (?, ?, ?, ?, NOW())');
+            $stmt->execute([$id, $oldStatus, 'COMPLETED', $sessionUser['id']]);
+            $this->json(['success' => true]);
+        } else {
+            $this->json(['error' => 'Failed to mark as completed'], 500);
+        }
+    }
 }
