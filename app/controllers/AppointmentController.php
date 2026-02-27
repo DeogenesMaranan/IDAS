@@ -121,6 +121,34 @@ class AppointmentController extends BaseController
             return;
         }
 
+        $contactPerson = trim((string)($input['contact_person'] ?? ''));
+        $contactAddress = trim((string)($input['contact_address'] ?? ''));
+        $contactNumber = trim((string)($input['contact_number'] ?? ''));
+
+        if ($contactPerson === '') {
+            $_SESSION['flash'] = ['error' => 'Contact person is required.'];
+            \Response::redirect('/IDSystem/');
+            return;
+        }
+        if ($contactNumber === '') {
+            $_SESSION['flash'] = ['error' => 'Contact number is required.'];
+            \Response::redirect('/IDSystem/');
+            return;
+        }
+        if ($contactAddress === '') {
+            $_SESSION['flash'] = ['error' => 'Contact address is required.'];
+            \Response::redirect('/IDSystem/');
+            return;
+        }
+
+        // Normalize and validate phone number formats: only allow digits and require 11-digit starting with 09
+        $cleanNumber = preg_replace('/\D/', '', $contactNumber);
+        if (!preg_match('/^09\d{9}$/', $cleanNumber)) {
+            $_SESSION['flash'] = ['error' => 'Contact number format is invalid. It must be 11 digits starting with 09.'];
+            \Response::redirect('/IDSystem/');
+            return;
+        }
+
         $scheduledAt = $appointmentDate . ' ' . $appointmentTime;
 
         $svc = new AppointmentService();
@@ -137,7 +165,11 @@ class AppointmentController extends BaseController
             return;
         }
 
-        $ok = $svc->createAppointment((string)$sessionUser['id'], $reason, $scheduledAt);
+        $ok = $svc->createAppointment((string)$sessionUser['id'], $reason, $scheduledAt, [
+            'contact_person_name' => $contactPerson !== '' ? $contactPerson : null,
+            'contact_person_address' => $contactAddress !== '' ? $contactAddress : null,
+            'contact_person_number' => $cleanNumber !== '' ? $cleanNumber : null,
+        ]);
         if ($ok) {
             $_SESSION['flash'] = ['success' => 'Appointment created successfully.'];
         } else {
