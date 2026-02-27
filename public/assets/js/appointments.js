@@ -3,6 +3,41 @@ import { initReschedModal } from './resched_modal.js';
 import { createActionButton } from './components/ActionButton.js';
 import { createTableRow } from './components/TableRow.js';
 
+// Lightweight toast helper used by this SPA script
+function showNotification(message, type = 'info') {
+    try {
+        const stackClass = 'toast-stack';
+        let stack = document.querySelector('.' + stackClass);
+        if (!stack) {
+            stack = document.createElement('div');
+            stack.className = 'toast-stack fixed top-4 right-4 z-50 flex flex-col gap-3 pointer-events-none';
+            document.body.appendChild(stack);
+        }
+        const toast = document.createElement('div');
+        const borderClass = type === 'success' ? 'border-green-500' : (type === 'error' ? 'border-red-500' : 'border-blue-500');
+        toast.className = `toast text-lg opacity-0 -translate-y-2 transform transition-opacity transition-transform duration-200 max-w-sm rounded-md px-4 py-3 shadow-xl pointer-events-auto bg-white text-gray-800 ${borderClass}`;
+        toast.setAttribute('role','status');
+        toast.setAttribute('aria-live','polite');
+        toast.innerHTML = `<div class="flex items-center gap-3"><div class="flex-1 pr-2">${String(message)}</div><button type="button" class="toast-close ml-2 text-gray-600 hover:text-gray-800 p-1 rounded focus:outline-none focus:ring-1 focus:ring-gray-200" aria-label="Close" title="Close">&times;</button></div>`;
+        stack.appendChild(toast);
+        // enter animation
+        requestAnimationFrame(() => toast.classList.add('opacity-100','translate-y-0'));
+        // auto remove
+        const VISIBLE_DURATION = 5000;
+        const EXIT_ANIM_MS = 250;
+        const autoClose = setTimeout(() => {
+            toast.classList.remove('opacity-100','translate-y-0');
+            setTimeout(() => { if (toast && toast.parentNode) toast.parentNode.removeChild(toast); }, EXIT_ANIM_MS);
+        }, VISIBLE_DURATION);
+        const btn = toast.querySelector('.toast-close');
+        if (btn) btn.addEventListener('click', () => {
+            clearTimeout(autoClose);
+            toast.classList.remove('opacity-100','translate-y-0');
+            setTimeout(() => { if (toast && toast.parentNode) toast.parentNode.removeChild(toast); }, EXIT_ANIM_MS);
+        });
+    } catch (e) { console.warn('showNotification error', e); }
+}
+
 function escapeHtml(text) {
     if (text === null || text === undefined) return '';
     const map = {

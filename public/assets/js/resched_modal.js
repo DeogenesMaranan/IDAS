@@ -48,7 +48,10 @@ function renderCalendarGrid(container, monthDate, countsMap, selectedDate, onSel
         cell.className = 'h-20 p-2 rounded-lg text-left w-full';
         const iso = dt.toISOString().slice(0,10);
         const isPast = iso < todayIso;
-        if (isPast) {
+        const weekday = dt.getDay();
+        const isWeekend = weekday === 0 || weekday === 6; // Sunday=0, Saturday=6
+        if (isPast || isWeekend) {
+            // visually disable past dates and weekends
             cell.className += ' text-slate-300 bg-slate-50 cursor-not-allowed';
             cell.disabled = true;
         } else {
@@ -68,7 +71,8 @@ function renderCalendarGrid(container, monthDate, countsMap, selectedDate, onSel
         cell.appendChild(top);
         const hint = document.createElement('div');
         hint.className = 'text-xs text-slate-400 mt-1';
-        hint.textContent = '';
+        // show weekend indicator when applicable
+        hint.textContent = isWeekend ? 'Weekend' : '';
         cell.appendChild(hint);
         if (!cell.disabled) {
             cell.addEventListener('click', () => onSelect(iso));
