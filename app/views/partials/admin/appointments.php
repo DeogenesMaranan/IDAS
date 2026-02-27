@@ -86,6 +86,7 @@
                 <option value="RESCHEDULED">Rescheduled</option>
                 <option value="CANCELED">Canceled</option>
                 <option value="COMPLETED">Completed</option>
+                <option value="MISSED">Missed</option>
             </select>
         </div>
 

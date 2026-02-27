@@ -236,7 +236,26 @@ function fetchAppointments(search = '', status = '', dateFrom = '', dateTo = '')
             // response handled below
             if (code === 200) {
                 try {
-                    const data = JSON.parse(resp);
+                    const parsed = JSON.parse(resp);
+                    let data = parsed;
+                    // Support client-side 'MISSED' filter: appointments that were approved
+                    // but not completed and scheduled before today
+                    if (status === 'MISSED') {
+                        const today = new Date();
+                        today.setHours(0,0,0,0);
+                        if (Array.isArray(parsed)) {
+                            data = parsed.filter(appt => {
+                                if (!appt) return false;
+                                if (appt.status !== 'APPROVED') return false;
+                                const s = appt.scheduled_at || appt.scheduledAt || appt.date || '';
+                                const sd = new Date(s);
+                                if (isNaN(sd.getTime())) return false;
+                                return sd < today;
+                            });
+                        } else {
+                            data = [];
+                        }
+                    }
                     renderAppointmentsTable(data);
                     updateSummaryBar(data);
                 } catch (e) {

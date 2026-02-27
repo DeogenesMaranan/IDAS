@@ -40,7 +40,23 @@ class AppointmentController extends BaseController
                 $match = stripos($appt['full_name'] ?? '', $search) !== false || stripos($appt['id'] ?? '', $search) !== false;
             }
             if ($match && $status !== '') {
-                $match = ($appt['status'] ?? '') === $status;
+                if ($status === 'MISSED') {
+                    // MISSED = approved but not completed and scheduled before today
+                    if (($appt['status'] ?? '') !== 'APPROVED') {
+                        $match = false;
+                    } else {
+                        $sched = $appt['scheduled_at'] ?? '';
+                        $schedTs = $sched !== '' ? strtotime($sched) : null;
+                        if ($schedTs === null) {
+                            $match = false;
+                        } else {
+                            $todayTs = strtotime(date('Y-m-d') . ' 00:00:00');
+                            if ($schedTs >= $todayTs) $match = false;
+                        }
+                    }
+                } else {
+                    $match = ($appt['status'] ?? '') === $status;
+                }
             }
             // date range filter (scheduled_at expected as 'Y-m-d H:i:s')
             if ($match && ($fromTs !== null || $toTs !== null)) {
@@ -57,9 +73,18 @@ class AppointmentController extends BaseController
         }
 
         // If no search and no date range provided, allow quick shortcuts
-        if ($search === '' && $dateFrom === '' && $dateTo === '') {
+            if ($search === '' && $dateFrom === '' && $dateTo === '') {
             if ($status === '') {
                 $filtered = $appointments;
+            } else if ($status === 'MISSED') {
+                $todayTs = strtotime(date('Y-m-d') . ' 00:00:00');
+                $filtered = array_filter($appointments, function ($appt) use ($todayTs) {
+                    if (($appt['status'] ?? '') !== 'APPROVED') return false;
+                    $sched = $appt['scheduled_at'] ?? '';
+                    $schedTs = $sched !== '' ? strtotime($sched) : null;
+                    if ($schedTs === null) return false;
+                    return $schedTs < $todayTs;
+                });
             } else {
                 $filtered = array_filter($appointments, function ($appt) use ($status) {
                     return ($appt['status'] ?? '') === $status;
@@ -240,7 +265,22 @@ class AppointmentController extends BaseController
                 $match = stripos($appt['full_name'] ?? '', $search) !== false || stripos($appt['id'] ?? '', $search) !== false;
             }
             if ($match && $status !== '') {
-                $match = ($appt['status'] ?? '') === $status;
+                if ($status === 'MISSED') {
+                    if (($appt['status'] ?? '') !== 'APPROVED') {
+                        $match = false;
+                    } else {
+                        $sched = $appt['scheduled_at'] ?? '';
+                        $schedTs = $sched !== '' ? strtotime($sched) : null;
+                        if ($schedTs === null) {
+                            $match = false;
+                        } else {
+                            $todayTs = strtotime(date('Y-m-d') . ' 00:00:00');
+                            if ($schedTs >= $todayTs) $match = false;
+                        }
+                    }
+                } else {
+                    $match = ($appt['status'] ?? '') === $status;
+                }
             }
             if ($match && ($fromTs !== null || $toTs !== null)) {
                 $sched = $appt['scheduled_at'] ?? '';
@@ -258,6 +298,15 @@ class AppointmentController extends BaseController
         if ($search === '' && $dateFrom === '' && $dateTo === '') {
             if ($status === '') {
                 $filtered = $appointments;
+            } else if ($status === 'MISSED') {
+                $todayTs = strtotime(date('Y-m-d') . ' 00:00:00');
+                $filtered = array_filter($appointments, function ($appt) use ($todayTs) {
+                    if (($appt['status'] ?? '') !== 'APPROVED') return false;
+                    $sched = $appt['scheduled_at'] ?? '';
+                    $schedTs = $sched !== '' ? strtotime($sched) : null;
+                    if ($schedTs === null) return false;
+                    return $schedTs < $todayTs;
+                });
             } else {
                 $filtered = array_filter($appointments, function ($appt) use ($status) {
                     return ($appt['status'] ?? '') === $status;
