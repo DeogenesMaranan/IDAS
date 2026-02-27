@@ -1,0 +1,4 @@
+<?php
+
+define('MAX_AVAILABLE_PER_DAY', 100);
+define('MAX_AVAILABLE_PER_SLOT', 100);

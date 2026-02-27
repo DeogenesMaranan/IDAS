@@ -108,24 +108,35 @@ class AppointmentController extends BaseController
         $input = Request::input();
         $reason = trim((string) ($input['reason'] ?? ''));
         $appointmentDate = trim((string) ($input['appointment_date'] ?? ''));
-        $timeSlot = trim((string) ($input['time_slot'] ?? ''));
+        $appointmentTime = trim((string) ($input['appointment_time'] ?? $input['time_slot'] ?? ''));
 
         if ($reason === '') {
             $_SESSION['flash'] = ['error' => 'Reason is required.'];
             \Response::redirect('/IDSystem/');
             return;
         }
-        if ($appointmentDate === '' || $timeSlot === '') {
+        if ($appointmentDate === '' || $appointmentTime === '') {
             $_SESSION['flash'] = ['error' => 'Date and time are required.'];
             \Response::redirect('/IDSystem/');
             return;
         }
 
-        $slotParts = explode('-', $timeSlot);
-        $startTime = isset($slotParts[0]) ? $slotParts[0] : '08:00';
-        $scheduledAt = $appointmentDate . ' ' . $startTime;
+        $scheduledAt = $appointmentDate . ' ' . $appointmentTime;
 
         $svc = new AppointmentService();
+        $check = $svc->checkAvailability($scheduledAt);
+        if (!$check['ok']) {
+            if ($check['reason'] === 'DAY_FULL') {
+                $_SESSION['flash'] = ['error' => 'Selected date is fully booked. Please pick another date.'];
+            } elseif ($check['reason'] === 'SLOT_FULL') {
+                $_SESSION['flash'] = ['error' => 'Selected time slot is full. Please pick another time.'];
+            } else {
+                $_SESSION['flash'] = ['error' => 'Invalid date/time selected.'];
+            }
+            \Response::redirect('/IDSystem/');
+            return;
+        }
+
         $ok = $svc->createAppointment((string)$sessionUser['id'], $reason, $scheduledAt);
         if ($ok) {
             $_SESSION['flash'] = ['success' => 'Appointment created successfully.'];
@@ -160,6 +171,50 @@ class AppointmentController extends BaseController
 
         $appointmentModel = new Appointment();
         $this->json($appointmentModel->getSlotCounts($date));
+    }
+
+    public function availability(): void
+    {
+        try {
+            $query = Request::query();
+            $query = Request::query();
+            $year = trim((string)($query['year'] ?? ''));
+            $month = trim((string)($query['month'] ?? ''));
+            if ($year === '' || $month === '') {
+                $this->json(['error' => 'Missing year or month'], 400);
+                return;
+            }
+
+            $monthNum = intval($month);
+            if ($monthNum < 1 || $monthNum > 12) {
+                $this->json(['error' => 'Invalid month'], 400);
+                return;
+            }
+
+            $startDate = sprintf('%04d-%02d-01', intval($year), $monthNum);
+            $dt = DateTime::createFromFormat('Y-m-d', $startDate);
+            if (!$dt) {
+                $this->json(['error' => 'Invalid date'], 400);
+                return;
+            }
+            $daysInMonth = (int)$dt->format('t');
+
+            $appointmentModel = new Appointment();
+            $daily = $appointmentModel->getDailyCounts($startDate, $daysInMonth);
+
+            $out = ['_meta' => ['max_per_day' => (defined('MAX_AVAILABLE_PER_DAY')?MAX_AVAILABLE_PER_DAY:100), 'max_per_slot' => (defined('MAX_AVAILABLE_PER_SLOT')?MAX_AVAILABLE_PER_SLOT:100)]];
+            foreach ($daily as $date => $count) {
+                $slots = $appointmentModel->getSlotCounts($date);
+                $out[$date] = [
+                    'count' => (int)$count,
+                    'times' => $slots,
+                ];
+            }
+
+            $this->json($out);
+        } catch (\Throwable $e) {
+            $this->json(['error' => 'server_error', 'message' => $e->getMessage(), 'trace' => $e->getTraceAsString()], 500);
+        }
     }
 
     public function rescheduleAppointment(): void

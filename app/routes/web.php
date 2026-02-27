@@ -123,4 +123,12 @@ $router->get('/admin/appointments/slot-counts', [
     }
 ]);
 
+$router->get('/appointments/availability', [
+    ['mw_require_auth'],
+    function () {
+        $controller = new AppointmentController();
+        $controller->availability();
+    }
+]);
+
 return $router;
